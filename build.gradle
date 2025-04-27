@@ -1,8 +1,9 @@
 plugins {
-    id "idea"
+
     id "net.neoforged.moddev.legacyforge" version "2.0.74"
     id "dev.ithundxr.silk" version "0.11.15"
     id "me.modmuss50.mod-publish-plugin" version "0.8.3"
+    id "idea"
 }
 
 apply from: "./gradle/java.gradle"
@@ -17,6 +18,15 @@ idea {
         downloadJavadoc = true
         downloadSources = true
     }
+}
+
+
+
+mixin {
+    // add sourceSets.main, 'createaddition.refmap.json'
+    config 'createentitycontroller.mixins.json'
+
+
 }
 
 
