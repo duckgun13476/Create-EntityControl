@@ -1,1 +1,1 @@
-Another Mod attach Create to control block entity.
+Another Mod that attaches Create to control the block entity.
