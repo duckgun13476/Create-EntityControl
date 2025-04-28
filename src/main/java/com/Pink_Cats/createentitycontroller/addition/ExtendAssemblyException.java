@@ -62,6 +62,7 @@ public class ExtendAssemblyException extends Exception {
     }
 
     public static ExtendAssemblyException structureTooLarge() {
+        System.out.println("structureTooLarge");
         return new ExtendAssemblyException("structureTooLarge", AllConfigs.server().kinetics.maxBlocksMoved.get());
     }
 

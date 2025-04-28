@@ -89,7 +89,16 @@ public class Createentitycontroler {
 
         LOGGER.info(Config.magicNumberIntroduction + Config.squeeze_destroy_speed);
 
-        Config.items.forEach((item) -> LOGGER.info("ITEM >> {}", item.toString()));
+        LOGGER.info("limit array >> {}", Config.blocksLimitValues);
+
+
+        //Config.blocks_uncrushable.forEach((item) -> LOGGER.info("ITEM >> {}", item.toString()));
+
+
+
+
+
+
     }
 
     // Add the example block item to the building blocks tab
