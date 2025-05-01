@@ -1,4 +1,4 @@
-
+![minecraft_title](https://github.com/user-attachments/assets/15b13cc0-ca25-46e1-b8db-f9cd584b8a07)
 
 ## Mechanical Power: Entity Control ⚙️
 
