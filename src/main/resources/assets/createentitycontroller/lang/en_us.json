@@ -1,7 +1,4 @@
 {
-
-  "createentitycontroller.gui.assembly.exception.not-allow-block": "位于 [%1$s,%2$s,%3$s] 的方块无法被移动",
-  "createentitycontroller.gui.assembly.exception.unstable-structure": "动态结构的结构应力：[%1$s]\n大于允许配置最大值：[%2$s]\n无法被移动",
-  "createentitycontroller.gui.assembly.exception.except-allow-block": "特殊功能方块数量超过上限",
-  "createentitycontroller.gui.assembly.exception.Block-count-exceeded-for": "特殊功能方块数量超过上限: [%1$s x %2$s]"
+  "create.gui.assembly.exception.unmovableBlock_test": "The structure is too long, the block is unmovable, or the number of special function blocks exceeds the limit \nLocated at: [%1$s,%2$s,%3$s]\nBlock: [%4$s]",
+  "create.gui.assembly.exception.structureTooLargeOrUnstable": "The structure has too many blocks or the structural stability coefficient exceeds the limit \nMaximum structure value: [%1$s]\nActual structure value: [%2$s]\nMaximum coefficient value: [%3$s]\nActual coefficient value: [%4$s]"
 }

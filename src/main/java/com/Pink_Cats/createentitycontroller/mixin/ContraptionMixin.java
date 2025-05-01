@@ -29,7 +29,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.DebugPackets;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -52,6 +51,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -135,12 +135,10 @@ public class ContraptionMixin {
 	}
 
 	private final List<BlockPos> blockPosList = new ArrayList<>();
-	private final List<BlockState> blockInfoList = new ArrayList<>();
+	Map<String, Integer> blockCountMap_r = new HashMap<>();
+	BlockPos minPos = new BlockPos(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+	BlockPos maxPos = new BlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 
-	private static String convertToFormattedName(String blockName) {
-		// 将冒号替换为点
-		return "block." + blockName.replace(":", ".");
-	}
 
     /*@Shadow
     protected boolean moveBlock(Level world, @javax.annotation.Nullable Direction forcedDirection, Queue<BlockPos> frontier,
@@ -153,7 +151,7 @@ public class ContraptionMixin {
     @Overwrite
     public boolean searchMovedStructure(Level world, BlockPos pos, @Nullable Direction forcedDirection) throws AssemblyException, ExtendAssemblyException {
         initialPassengers.clear();
-        LOGGER.error("searchMovedStructure");
+        //LOGGER.error("searchMovedStructure");
 
         Queue<BlockPos> frontier = new UniqueLinkedList<>();
         Set<BlockPos> visited = new HashSet<>();
@@ -170,58 +168,54 @@ public class ContraptionMixin {
 
         for (int limit = 100000; limit > 0; limit--) {
             if (frontier.isEmpty()) {
+				if (Config.enableBlockEntityExperimentPara){
+					int totalValue = createentitycontroller$getTotalStabilizeValue();
 
-				//checker_main
-				Map<String, Integer> blockCountMap = new HashMap<>();
-				Pattern pattern = Pattern.compile("Block\\{(.*?)\\}"); // 正则表达式匹配方块名称
-				for (BlockState block : blockInfoList) {
-					String blockString = block.toString(); // 获取方块的字符串表示
-					Matcher matcher = pattern.matcher(blockString);
 
-					if (matcher.find()) {
-						String blockName = matcher.group(1); // 提取方块名称
-						blockCountMap.put(blockName, blockCountMap.getOrDefault(blockName, 0) + 1);
+					int globalCount = 0;
+					for (Integer count : blockCountMap_r.values()) {globalCount += count; }
+					System.setProperty("globalValue", Integer.toString(totalValue));
+					System.setProperty("globalCount", Integer.toString(globalCount));
+
+					if (totalValue > Config.block_entity_max_stabilize_count) {
+						throw AssemblyException.structureTooLarge();
 					}
 				}
-				//experiment
-
-				//count_main
-				for (List<Object> entry : Config.blocksLimitValues) {
-					// 解析条目
-					String blockName = (String) entry.get(0); // 获取方块名称
-					int allowedCount = (Integer) entry.get(1); // 获取允许的数量
-
-					// 获取当前方块数量
-					int currentCount = blockCountMap.getOrDefault(blockName, 0);
-					// System.out.println(blockName + " count: " + currentCount);
-
-					// 检查是否超过允许数量
-					if (currentCount > allowedCount) {
-						// 可以选择抛出异常
-						String formattedName = convertToFormattedName(blockName);
-						/*throw  ExtendAssemblyException.SpecialBlockOverload(
-								Component.translatable(formattedName).getString(),
-								currentCount - allowedCount
-
-						);*/
-					}
-				}
-
-
-
 				return true;
 			}
             if (!moveBlock(world, forcedDirection, frontier, visited))
                 return false;
         }
-
-        // 处理抛出的异常
-        // 您可以选择抛出新的异常，或者返回一个特定值
-        System.out.println("font");
-        throw AssemblyException.structureTooLarge(); // 根据需要处理异常
+        throw AssemblyException.structureTooLarge();
     }
 
-    /**
+	@Unique
+	private int createentitycontroller$getTotalStabilizeValue() {
+		int totalValue = 0;
+		int defaultValue = 100;
+		for (Map.Entry<String, Integer> entry : blockCountMap_r.entrySet()) {
+			String blockType = entry.getKey();
+			Integer blockCount = entry.getValue();
+
+			// 在 blocksLimitValues 中查找匹配的方块
+			boolean found = false;
+			for (List<Object> limitValue : Config.blocksLimitValues) {
+				if (limitValue.size() > 1 && limitValue.get(0).equals(blockType)) {
+					totalValue += blockCount * ((Integer) limitValue.get(2)); // 使用 limitValue 的第二个值
+					found = true;
+					break;
+				}
+			}
+
+			// 如果方块不在 blocksLimitValues 中，使用默认值
+			if (!found) {
+				totalValue += blockCount * defaultValue;
+			}
+		}
+		return totalValue;
+	}
+
+	/**
      * @author Pink_Cats
      * @reason catch_move
      */
@@ -229,7 +223,9 @@ public class ContraptionMixin {
     protected boolean moveBlock(Level world, @Nullable Direction forcedDirection, Queue<BlockPos> frontier,
                             Set<BlockPos> visited) throws AssemblyException {
 		BlockPos pos = frontier.poll();
-		System.out.println("pos: " + pos);
+
+
+
 		if (pos == null)
 			return false;
 		visited.add(pos);
@@ -360,10 +356,68 @@ public class ContraptionMixin {
 			String blockStateString = blockState.toString();
 			if (Config.blocks_unmoved.stream().anyMatch(blockStateString::contains)) {
 				throw AssemblyException.unmovableBlock(pos, state);
-				//throw CustomAssemblyException.unmovableBlock(pos, state);
 			}
 
-			blockInfoList.add(blockState);
+			//count
+			String blockString = blockState.toString();
+			Pattern pattern = Pattern.compile("Block\\{(.*?)\\}");
+			Matcher matcher = pattern.matcher(blockString);
+			if (matcher.find()) {
+				String blockName = matcher.group(1); // 提取方块名称
+
+				// 更新字典中的数量
+				blockCountMap_r.put(blockName, blockCountMap_r.getOrDefault(blockName, 0) + 1);
+			}
+			for (List<Object> entry : Config.blocksLimitValues) {
+				// 解析条目
+				String blockName = (String) entry.get(0); // 获取方块名称
+				int allowedCount = (Integer) entry.get(1); // 获取允许的数量
+				// 获取当前方块数量
+				int currentCount = blockCountMap_r.getOrDefault(blockName, 0);
+				// 检查是否超过允许数量
+				if (currentCount > allowedCount) {
+					// 可以选择抛出异常
+					if (Config.debug_block_entity_problem){
+						LOGGER.debug(blockName + " count: " + currentCount+ " allowed: " + allowedCount);
+					}
+					throw AssemblyException.unmovableBlock(pos, state);
+				}}
+			//distance
+			//System.out.println("pos: " + pos);
+
+			if (pos.getX() < minPos.getX()) {
+				minPos = new BlockPos(pos.getX(), minPos.getY(), minPos.getZ());
+			}
+			if (pos.getY() < minPos.getY()) {
+				minPos = new BlockPos(minPos.getX(), pos.getY(), minPos.getZ());
+			}
+			if (pos.getZ() < minPos.getZ()) {
+				minPos = new BlockPos(minPos.getX(), minPos.getY(), pos.getZ());
+			}
+			// 更新最大坐标
+			if (pos.getX() > maxPos.getX()) {
+				maxPos = new BlockPos(pos.getX(), maxPos.getY(), maxPos.getZ());
+			}
+			if (pos.getY() > maxPos.getY()) {
+				maxPos = new BlockPos(maxPos.getX(), pos.getY(), maxPos.getZ());
+			}
+			if (pos.getZ() > maxPos.getZ()) {
+				maxPos = new BlockPos(maxPos.getX(), maxPos.getY(), pos.getZ());
+			}
+
+			//System.out.println("maxPos: " + maxPos +", minPos: " + minPos);
+			if ((maxPos.getX() - minPos.getX()) > Config.blockEntityXZMaxLength) {
+				throw AssemblyException.unmovableBlock(pos, state);
+
+			}
+			if ((maxPos.getY() - minPos.getY()) > Config.blockEntityYMaxLength) {
+				throw AssemblyException.unmovableBlock(pos, state);
+			}
+			if ((maxPos.getZ() - minPos.getZ()) > Config.blockEntityXZMaxLength) {
+				throw AssemblyException.unmovableBlock(pos, state);
+			}
+
+
 			blockPosList.add(pos);
 			return true;
 		}
@@ -475,7 +529,7 @@ public class ContraptionMixin {
 	 */
 	@Overwrite
 	public void addBlocksToWorld(Level world, StructureTransform transform) {
-		System.out.println("addBlocksToWorld");
+		//System.out.println("addBlocksToWorld");
 		if (disassembled)
 			return;
 		disassembled = true;
@@ -501,16 +555,31 @@ public class ContraptionMixin {
 				BlockState blockState = world.getBlockState(targetPos);
 
 
-				boolean black_block;
+
+				boolean squeeze_block;
+
 				String blockStateString = blockState.toString();
-				black_block = Config.blocks_uncrushable.stream().allMatch(blockStateString::contains);
-				System.out.println("blocks_uncrushable: " + Config.blocks_uncrushable);
-				System.out.println("blocks_unmoved: " + Config.blocks_unmoved);
+
+				boolean isInWhitelist = Config.blocks_uncrushable.stream().anyMatch(blockStateString::contains);
+				boolean isInIgnoreList = Config.blocks_uncrushableIgnore.stream().anyMatch(blockStateString::contains);
+
+				if (isInWhitelist){
+					squeeze_block = true;
+				}
+				else if (isInIgnoreList) {
+					squeeze_block = false;
+				}
+				else {
+					squeeze_block = (blockState.getDestroySpeed(world, targetPos) > Config.squeeze_destroy_speed);
+				}
+
+
+				//System.out.println("blocks_uncrushable: " + Config.blocks_uncrushable);
+				//System.out.println("blocks_unmoved: " + Config.blocks_unmoved);
 
 				if (
 						blockState.getDestroySpeed(world, targetPos) == -1 ||
-						blockState.getDestroySpeed(world, targetPos) > Config.squeeze_destroy_speed ||
-						black_block||
+						squeeze_block  ||
 
 								(state.getCollisionShape(world, targetPos)
 						.isEmpty()

@@ -1,7 +1,6 @@
 {
 
-  "createentitycontroller.gui.assembly.exception.not-allow-block": "位于 [%1$s,%2$s,%3$s] 的方块无法被移动45",
-  "createentitycontroller.gui.assembly.exception.unstable-structure": "动态结构的结构应力：[%1$s]\n大于允许配置最大值：[%2$s]\n无法被移动",
-  "createentitycontroller.gui.assembly.exception.except-allow-block": "特殊功能方块数量超过上限",
-  "createentitycontroller.gui.assembly.exception.Block-count-exceeded-for": "特殊功能方块数量超过上限: [%1$s x %2$s]"
+  "create.gui.assembly.exception.unmovableBlock_test": "结构过长、方块不可移动或特殊功能方块数量超过上限 \n位于：[%1$s,%2$s,%3$s]\n方块：[%4$s]",
+  "create.gui.assembly.exception.structureTooLargeOrUnstable": "结构中方块过多或结构稳定系数超过上限 \n结构最大值为：[%1$s]\n结构实际值为：[%2$s]\n系数最大值为：[%3$s]\n系数实际值为：[%4$s]"
+
 }

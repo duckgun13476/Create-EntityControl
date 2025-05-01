@@ -12,6 +12,7 @@ apply from: "gradle/property_loader.gradle"
 group = "com.${mod_author}.${mod_id}"
 version = "${minecraft_version}-${mod_version}"
 archivesBaseName = mod_id
+String gitHash = "${calculateGitHash() + (hasUnstaged() ? "-modified" : "")}"
 
 idea {
     module {
@@ -231,7 +232,12 @@ compileJava {
 jar {
     from('LICENSE.txt') {
         rename { "${it}_${archivesBaseName}" }
+
     }
+    manifest.attributes([
+            "MixinConfigs": "createentitycontroller.mixins.json",
+            "Git-Hash"    :  gitHash
+    ])
 
 }
 
@@ -271,3 +277,27 @@ publishMods {
 }
 
 
+String calculateGitHash() {
+    try {
+        def output = providers.exec {
+            commandLine("git", "rev-parse", "HEAD")
+        }
+        return output.standardOutput.asText.get().trim()
+    } catch (Throwable ignored) {
+        return "unknown"
+    }
+}
+
+boolean hasUnstaged() {
+    try {
+        def output = providers.exec {
+            commandLine("git", "status", "--porcelain")
+        }
+        String result = output.standardOutput.asText.get().replace("/M gradlew(\\.bat)?/", "").trim()
+        if (!result.isEmpty())
+            println("Found stageable results:\n ${result}\n")
+        return !result.isEmpty()
+    } catch (Throwable ignored) {
+        return false
+    }
+}
