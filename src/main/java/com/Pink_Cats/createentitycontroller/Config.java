@@ -23,7 +23,10 @@ public class Config {
                 .defineList("blocks_limit", Arrays.asList
                         (
                             Arrays.asList("create:deployer", 256, 100),
-                            Arrays.asList("create:mechanical_drill", 256, 100)
+                            Arrays.asList("create:mechanical_drill", 256, 100),
+                            Arrays.asList("minecraft:dirt", 2048, 10000),
+                            Arrays.asList("create:linear_chassis", 2048, -100),
+                            Arrays.asList("minecraft:netherrack", 2048, 5000)
                 ),
                         it -> it instanceof List && ((List<?>) it).get(0) instanceof String && ((List<?>) it).get(1) instanceof Number);
 
@@ -42,15 +45,11 @@ public class Config {
 
     private static final ForgeConfigSpec.IntValue BLOCK_ENTITY_MAX_XZ_LENGTH =
             BUILDER.comment("The longest XZ distance of block entity | If set 20: 17*42*20 is allowed but 20*42*21 is forbidden.")
-                    .defineInRange("block entity max length", 40, 3, 500);
+                    .defineInRange("block entity max length XZ", 40, 3, 500);
 
     private static final ForgeConfigSpec.IntValue BLOCK_ENTITY_MAX_Y_LENGTH =
             BUILDER.comment("The longest Y  distance of block entity | If set 20: 42*14*42 is allowed but 42*24*42 is forbidden.")
-                    .defineInRange("block entity max length", 40, 3, 500);
-
-    public static final ForgeConfigSpec.ConfigValue<String> MAGIC_NUMBER_INTRODUCTION =
-            BUILDER.comment("What you want the introduction message to be for the magic number")
-                    .define("magicNumberIntroduction", "The magic number is... ");
+                    .defineInRange("block entity max length Y", 60, 3, 500);
 
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLACKS_STRING =
@@ -68,13 +67,15 @@ public class Config {
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLOCKS_UNCRUSHABLE_IGNORE =
             BUILDER.comment("A list of blocks can be crushed by block entities.")
+                    .comment("Warning:Block burned by lava might be conflict with player,you can add minecraft:lava to avoid block burned by lava!"
+                    )
                     .defineListAllowEmpty("blocks_uncrushable_ignore", List.of(
                             "minecraft:water"
                     ), Config::validateItemName);
 
     private static final ForgeConfigSpec.BooleanValue ENABLE_BLOCK_EXPERIMENT_PARA =
             BUILDER.comment("When enabled, blocks will calculate the experiment para for block entities.This might take very little time.")
-                    .define("calculate block stabilize para", false);
+                    .define("calculate block stabilize para", true);
 
     private static final ForgeConfigSpec.IntValue BLOCK_ENTITY_MAX_STABILIZE_COUNT =
             BUILDER.comment("The max limit of stabilize para. One normal block have 100 default stabilize count.")
@@ -92,7 +93,6 @@ public class Config {
     public static boolean enableBlockEntityExperimentPara;
     public static int blockEntityYMaxLength;
     public static float squeeze_destroy_speed;
-    public static String magicNumberIntroduction;
     public static Set<String> blocks_uncrushable; // 定义为 Set<String>
     public static Set<String> blocks_uncrushableIgnore;
     public static Set<String> blocks_unmoved; // 定义为 Set<String>
@@ -100,7 +100,7 @@ public class Config {
 
 
     private static boolean validateItemName(final Object obj) {
-        return obj instanceof final String itemName && ForgeRegistries.ITEMS.containsKey(new ResourceLocation(itemName));
+        return obj instanceof final String itemName && ForgeRegistries.BLOCKS.containsKey(new ResourceLocation(itemName));
     }
 
     @SubscribeEvent
@@ -116,7 +116,6 @@ public class Config {
     private static void Load_cec_config() {
         debug_block_entity_problem = DEBUG_BLOCK_ENTITY_PROBLEM.get();
         squeeze_destroy_speed = SQUEEZE_DESTROY_SPEED.get().floatValue()/10;
-        magicNumberIntroduction = MAGIC_NUMBER_INTRODUCTION.get();
         blockEntityYMaxLength = BLOCK_ENTITY_MAX_Y_LENGTH.get();
         blockEntityXZMaxLength = BLOCK_ENTITY_MAX_XZ_LENGTH.get();
         block_entity_max_stabilize_count = BLOCK_ENTITY_MAX_STABILIZE_COUNT.get();

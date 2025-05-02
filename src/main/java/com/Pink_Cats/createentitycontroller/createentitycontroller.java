@@ -24,8 +24,6 @@ public class createentitycontroller {
     private static final Logger LOGGER = LogUtils.getLogger();
 
 
-
-
     public createentitycontroller() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         // Register the commonSetup method for mod loading
@@ -41,15 +39,8 @@ public class createentitycontroller {
         LOGGER.info("Loading config");
 
         if (Config.debug_block_entity_problem) LOGGER.info("DEBUG BLOCK ENTITY_PROBLEM IS ENABLED");
-
         LOGGER.info("squeeze limit count > {}" ,Config.squeeze_destroy_speed);
         LOGGER.info("block count limit > {}", Config.blocksLimitValues);
-
-
-
-
-
-
 
 
     }
