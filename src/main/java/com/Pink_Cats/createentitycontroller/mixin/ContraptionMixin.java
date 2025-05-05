@@ -1,8 +1,8 @@
 package com.Pink_Cats.createentitycontroller.mixin;
 
 import com.Pink_Cats.createentitycontroller.Config;
-import com.Pink_Cats.createentitycontroller.addition.ExtendAssemblyException;
 import com.google.common.collect.Multimap;
+import com.mojang.logging.LogUtils;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.api.contraption.BlockMovementChecks;
 import com.simibubi.create.content.contraptions.*;
@@ -43,6 +43,8 @@ import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.tuple.Pair;
+
+import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -55,7 +57,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.mojang.text2speech.Narrator.LOGGER;
+
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isExtensionPole;
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isPistonHead;
 
@@ -69,7 +71,7 @@ public class ContraptionMixin {
     }
     @Shadow
     protected boolean movementAllowed(BlockState state, Level world, BlockPos pos) {
-        return false;
+        return true;
     }
     @Shadow
     protected boolean isAnchoringBlockAt(BlockPos pos) {
@@ -77,7 +79,8 @@ public class ContraptionMixin {
     }
     @Shadow
     private boolean moveChassis(Level world, BlockPos pos, Direction movementDirection, Queue<BlockPos> frontier,
-                                Set<BlockPos> visited) {return false;};
+                                Set<BlockPos> visited) {return false;}
+
     @Shadow  public AABB bounds;
     @Shadow  protected Map<BlockPos, StructureTemplate.StructureBlockInfo> blocks;
     @Shadow  public BlockPos anchor;
@@ -120,7 +123,7 @@ public class ContraptionMixin {
     private void movePulley(Level world, BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited) {}
     @Shadow
     private boolean moveMechanicalPiston(Level world, BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited,
-                                         BlockState state) throws AssemblyException {return true;}
+                                         BlockState state) {return true;}
     @Shadow
     protected void movePistonPole(Level world, BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited,
                                   BlockState state) {}
@@ -134,13 +137,17 @@ public class ContraptionMixin {
 
 	@Shadow
 	protected boolean moveBlock(Level world, @javax.annotation.Nullable Direction forcedDirection, Queue<BlockPos> frontier,
-								Set<BlockPos> visited) throws AssemblyException {return false;}
+								Set<BlockPos> visited) {return false;}
 
-	private final List<BlockPos> blockPosList = new ArrayList<>();
+	@Unique
 	Map<String, Integer> blockCountMap_r = new HashMap<>();
-	BlockPos minPos = new BlockPos(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
-	BlockPos maxPos = new BlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
+	@Unique
+	BlockPos createentitycontroller$minPos = new BlockPos(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+	@Unique
+	BlockPos createentitycontroller$maxPos = new BlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 
+	@Unique
+	private static final Logger createentitycontroller$LOGGER = LogUtils.getLogger();
 
     /*@Shadow
     protected boolean moveBlock(Level world, @javax.annotation.Nullable Direction forcedDirection, Queue<BlockPos> frontier,
@@ -153,7 +160,7 @@ public class ContraptionMixin {
 			at = @At("HEAD"), // 在方法开始时执行
 			cancellable = true // 可选：如果需要可以取消原方法的执行
 	)
-	public void injectSearchMovedStructure(Level world, BlockPos pos, Direction forcedDirection, CallbackInfoReturnable<Boolean> cir) throws AssemblyException, ExtendAssemblyException {
+	public void injectSearchMovedStructure(Level world, BlockPos pos, Direction forcedDirection, CallbackInfoReturnable<Boolean> cir) throws AssemblyException {
 		initialPassengers.clear();
 		// LOGGER.error("searchMovedStructure");
 
@@ -256,7 +263,7 @@ public class ContraptionMixin {
 			cir.setReturnValue(true);
 			return;
 		}
-		if (!movementAllowed(state, world, pos)) {
+		if (movementAllowed(state, world, pos)) {
 			throw AssemblyException.unmovableBlock(pos, state);
 		}
 		if (state.getBlock() instanceof AbstractChassisBlock
@@ -362,7 +369,7 @@ public class ContraptionMixin {
 			if (isAnchoringBlockAt(offsetPos)) {
 				continue;
 			}
-			if (!movementAllowed(blockState, world, offsetPos)) {
+			if (movementAllowed(blockState, world, offsetPos)) {
 				if (offset == forcedDirection) {
 					throw AssemblyException.unmovableBlock(pos, state);
 				}
@@ -404,7 +411,7 @@ public class ContraptionMixin {
 
 			// count
 			String blockString = blockState.toString();
-			Pattern pattern = Pattern.compile("Block\\{(.*?)\\}");
+			Pattern pattern = Pattern.compile("Block\\{(.*?)}");
 			Matcher matcher = pattern.matcher(blockString);
 			if (matcher.find()) {
 				String blockName = matcher.group(1); // 提取方块名称
@@ -422,7 +429,7 @@ public class ContraptionMixin {
 				if (currentCount > allowedCount) {
 					// 可以选择抛出异常
 					if (Config.debug_block_entity_problem) {
-						LOGGER.debug(blockName + " count: " + currentCount + " allowed: " + allowedCount);
+                        createentitycontroller$LOGGER.info("{} count: {} allowed: {}", blockName, currentCount, allowedCount);
 					}
 					throw AssemblyException.unmovableBlock(pos, state);
 				}
@@ -431,41 +438,39 @@ public class ContraptionMixin {
 			// distance
 			// System.out.println("pos: " + pos);
 
-			if (pos.getX() < minPos.getX()) {
-				minPos = new BlockPos(pos.getX(), minPos.getY(), minPos.getZ());
+			if (pos.getX() < createentitycontroller$minPos.getX()) {
+				createentitycontroller$minPos = new BlockPos(pos.getX(), createentitycontroller$minPos.getY(), createentitycontroller$minPos.getZ());
 			}
-			if (pos.getY() < minPos.getY()) {
-				minPos = new BlockPos(minPos.getX(), pos.getY(), minPos.getZ());
+			if (pos.getY() < createentitycontroller$minPos.getY()) {
+				createentitycontroller$minPos = new BlockPos(createentitycontroller$minPos.getX(), pos.getY(), createentitycontroller$minPos.getZ());
 			}
-			if (pos.getZ() < minPos.getZ()) {
-				minPos = new BlockPos(minPos.getX(), minPos.getY(), pos.getZ());
+			if (pos.getZ() < createentitycontroller$minPos.getZ()) {
+				createentitycontroller$minPos = new BlockPos(createentitycontroller$minPos.getX(), createentitycontroller$minPos.getY(), pos.getZ());
 			}
 			// 更新最大坐标
-			if (pos.getX() > maxPos.getX()) {
-				maxPos = new BlockPos(pos.getX(), maxPos.getY(), maxPos.getZ());
+			if (pos.getX() > createentitycontroller$maxPos.getX()) {
+				createentitycontroller$maxPos = new BlockPos(pos.getX(), createentitycontroller$maxPos.getY(), createentitycontroller$maxPos.getZ());
 			}
-			if (pos.getY() > maxPos.getY()) {
-				maxPos = new BlockPos(maxPos.getX(), pos.getY(), maxPos.getZ());
+			if (pos.getY() > createentitycontroller$maxPos.getY()) {
+				createentitycontroller$maxPos = new BlockPos(createentitycontroller$maxPos.getX(), pos.getY(), createentitycontroller$maxPos.getZ());
 			}
-			if (pos.getZ() > maxPos.getZ()) {
-				maxPos = new BlockPos(maxPos.getX(), maxPos.getY(), pos.getZ());
+			if (pos.getZ() > createentitycontroller$maxPos.getZ()) {
+				createentitycontroller$maxPos = new BlockPos(createentitycontroller$maxPos.getX(), createentitycontroller$maxPos.getY(), pos.getZ());
 			}
 
 			// System.out.println("maxPos: " + maxPos +", minPos: " + minPos);
-			if ((maxPos.getX() - minPos.getX()) > Config.blockEntityXZMaxLength) {
+			if ((createentitycontroller$maxPos.getX() - createentitycontroller$minPos.getX()) > Config.blockEntityXZMaxLength) {
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
-			if ((maxPos.getY() - minPos.getY()) > Config.blockEntityYMaxLength) {
+			if ((createentitycontroller$maxPos.getY() - createentitycontroller$minPos.getY()) > Config.blockEntityYMaxLength) {
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
-			if ((maxPos.getZ() - minPos.getZ()) > Config.blockEntityXZMaxLength) {
+			if ((createentitycontroller$maxPos.getZ() - createentitycontroller$minPos.getZ()) > Config.blockEntityXZMaxLength) {
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
 
-			blockPosList.add(pos);
 			cir.setReturnValue(true);
-			return;
-		} else {
+        } else {
 			throw AssemblyException.structureTooLarge();
 		}
 	}

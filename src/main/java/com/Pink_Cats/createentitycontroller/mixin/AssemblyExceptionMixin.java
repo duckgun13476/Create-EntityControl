@@ -1,25 +1,29 @@
 package com.Pink_Cats.createentitycontroller.mixin;
 
 import com.Pink_Cats.createentitycontroller.Config;
+import com.mojang.logging.LogUtils;
 import com.simibubi.create.content.contraptions.AssemblyException;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
+import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.lang.reflect.Field;
 
-import static com.mojang.text2speech.Narrator.LOGGER;
 
 
 
 @Mixin(value = AssemblyException.class,remap = false)
 public class AssemblyExceptionMixin {
 
+    @Unique
+    private static final Logger createentitycontroller$LOGGER = LogUtils.getLogger();
 
     /**
      * @author Pink_Cats
@@ -39,7 +43,9 @@ public class AssemblyExceptionMixin {
         AssemblyException e = new AssemblyException("unmovableBlock_test", pos.getX(), pos.getY(), pos.getZ(),
                 state.getBlock().getName());
         //System.out.println("unmovableBlockoverwrite");
-        LOGGER.info("create.entity is unmovable locate "+"["+ pos.getX()+","+pos.getY()+","+pos.getZ()+"]");
+        if (Config.debug_block_entity_problem) {
+            createentitycontroller$LOGGER.info("create.entity is unmovable locate [{},{},{}]", pos.getX(), pos.getY(), pos.getZ());
+        }
         Field positionField = AssemblyException.class.getDeclaredField("position");
         positionField.setAccessible(true); // 允许访问 private 字段
         positionField.set(e, pos); // 设置位置
