@@ -4,7 +4,8 @@ import com.Pink_Cats.createentitycontroller.Config;
 import com.google.common.collect.Multimap;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.AllBlocks;
-import com.simibubi.create.api.contraption.BlockMovementChecks;
+
+import com.simibubi.create.content.contraptions.BlockMovementChecks;
 import com.simibubi.create.content.contraptions.*;
 import com.simibubi.create.content.contraptions.actors.seat.SeatBlock;
 import com.simibubi.create.content.contraptions.bearing.WindmillBearingBlockEntity;
@@ -15,15 +16,14 @@ import com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock;
 import com.simibubi.create.content.contraptions.pulley.PulleyBlock;
 import com.simibubi.create.content.contraptions.pulley.PulleyBlockEntity;
 import com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock;
-import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity;
 import com.simibubi.create.content.kinetics.simpleRelays.ShaftBlock;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
 import com.simibubi.create.foundation.blockEntity.IMultiBlockEntityContainer;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 import info.journeymap.shaded.org.jetbrains.annotations.Nullable;
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.data.UniqueLinkedList;
-import net.createmod.catnip.nbt.NBTProcessors;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.UniqueLinkedList;
+import com.simibubi.create.foundation.utility.NBTProcessors;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -88,7 +88,7 @@ public class ContraptionMixin {
     @Shadow  private Set<SuperGlueEntity> glueToRemove;
 	@Shadow  protected List<AABB> superglue;
 	@Shadow  public boolean disassembled;
-    @Shadow  protected void addBlock(Level level, BlockPos pos, Pair<StructureTemplate.StructureBlockInfo, BlockEntity> pair) {}
+    @Shadow  protected void addBlock(BlockPos pos, Pair<StructureTemplate.StructureBlockInfo, BlockEntity> pair)  {}
     @Shadow  private void moveBelt(BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited, BlockState state) {}
 	@Shadow  protected Multimap<BlockPos, StructureTemplate.StructureBlockInfo> capturedMultiblocks;
 	@Shadow  protected MountedStorageManager storage;
@@ -175,7 +175,9 @@ public class ContraptionMixin {
 			frontier.add(pos);
 
 		if (!addToInitialFrontier(world, pos, forcedDirection, frontier))
-			return; // 直接返回，继续执行原方法
+		{
+			cir.setReturnValue(false);
+			return; }// 直接返回，继续执行原方法
 
 		for (int limit = 100000; limit > 0; limit--) {
 			if (frontier.isEmpty()) {
@@ -263,7 +265,7 @@ public class ContraptionMixin {
 			cir.setReturnValue(true);
 			return;
 		}
-		if (movementAllowed(state, world, pos)) {
+		if (!movementAllowed(state, world, pos)) {
 			throw AssemblyException.unmovableBlock(pos, state);
 		}
 		if (state.getBlock() instanceof AbstractChassisBlock
@@ -298,9 +300,6 @@ public class ContraptionMixin {
 			}
 		}
 
-		if (world.getBlockEntity(pos) instanceof ChainConveyorBlockEntity ccbe) {
-			ccbe.notifyConnectedToValidate();
-		}
 
 		// Double Chest halves stick together
 		if (state.hasProperty(ChestBlock.TYPE) && state.hasProperty(ChestBlock.FACING)
@@ -369,7 +368,7 @@ public class ContraptionMixin {
 			if (isAnchoringBlockAt(offsetPos)) {
 				continue;
 			}
-			if (movementAllowed(blockState, world, offsetPos)) {
+			if (!movementAllowed(blockState, world, offsetPos)) {
 				if (offset == forcedDirection) {
 					throw AssemblyException.unmovableBlock(pos, state);
 				}
@@ -401,7 +400,7 @@ public class ContraptionMixin {
 			}
 		}
 
-		addBlock(world, pos, capture(world, pos));
+		addBlock(pos, capture(world, pos));
 		if (blocks.size() <= AllConfigs.server().kinetics.maxBlocksMoved.get()) {
 			BlockState blockState = world.getBlockState(pos); // 获取方块状态
 			String blockStateString = blockState.toString();
@@ -600,10 +599,9 @@ public class ContraptionMixin {
 						}
 
 						blockEntity.load(tag);
+						storage.addStorageToWorld(block, blockEntity);
 					}
 				}
-
-				storage.unmount(world, block, targetPos, blockEntity);
 
 				if (blockEntity != null) {
 					transform.apply(blockEntity);
@@ -626,6 +624,8 @@ public class ContraptionMixin {
 			if (!world.isClientSide) {
 				world.addFreshEntity(new SuperGlueEntity(world, box));
 			}
+
+			storage.clear();
 		}
 	}
 }

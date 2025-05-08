@@ -31,6 +31,7 @@ public class AssemblyExceptionMixin {
      */
     @Inject(method = "unmovableBlock", at = @At("HEAD") )
     private static void injectUnmovableBlock(BlockPos pos, BlockState state, CallbackInfoReturnable<AssemblyException> cir) {
+        //next step
         //LOGGER.error("HELLO FROM MIXIN");
     }
 
@@ -42,7 +43,6 @@ public class AssemblyExceptionMixin {
     public static AssemblyException unmovableBlock(BlockPos pos, BlockState state) throws IllegalAccessException, NoSuchFieldException {
         AssemblyException e = new AssemblyException("unmovableBlock_test", pos.getX(), pos.getY(), pos.getZ(),
                 state.getBlock().getName());
-        //System.out.println("unmovableBlockoverwrite");
         if (Config.debug_block_entity_problem) {
             createentitycontroller$LOGGER.info("create.entity is unmovable locate [{},{},{}]", pos.getX(), pos.getY(), pos.getZ());
         }
