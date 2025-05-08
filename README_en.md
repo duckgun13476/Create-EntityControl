@@ -1,5 +1,14 @@
 ![minecraft_title](https://github.com/user-attachments/assets/15b13cc0-ca25-46e1-b8db-f9cd584b8a07)
 
+
+<p align="center">
+<a href="https://modrinth.com/mod/create-entity-control"><img src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3.2.0/assets/cozy/available/modrinth_vector.svg" alt="Modrinth Page"></a>
+<a href="https://www.curseforge.com/minecraft/mc-mods/create-entitycontroller"><img src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3.2.0/assets/cozy/available/curseforge_vector.svg" alt="CurseForge Page"></a>
+</p>
+
+---
+
+
 ## Mechanical Power: Entity Control ⚙️
 
 A simple mechanical power add-on that allows for customizable block entity configurations!

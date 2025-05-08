@@ -1,9 +1,15 @@
 
 ![minecraft_title](https://github.com/user-attachments/assets/15b13cc0-ca25-46e1-b8db-f9cd584b8a07)
 
+<p align="center">
+<a href="https://modrinth.com/mod/create-entity-control"><img src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3.2.0/assets/cozy/available/modrinth_vector.svg" alt="Modrinth Page"></a>
+<a href="https://www.curseforge.com/minecraft/mc-mods/create-entitycontroller"><img src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3.2.0/assets/cozy/available/curseforge_vector.svg" alt="CurseForge Page"></a>
+</p>
 
 
 ## 机械动力：实体控制 ⚙️
+
+---
 
 一个简单的机械动力附属，允许自定义机械动力的方块实体配置！
 
