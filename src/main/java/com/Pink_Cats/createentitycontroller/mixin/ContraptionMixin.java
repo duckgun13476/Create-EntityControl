@@ -265,7 +265,7 @@ public class ContraptionMixin {
 			cir.setReturnValue(true);
 			return;
 		}
-		if (movementAllowed(state, world, pos)) {
+		if (!movementAllowed(state, world, pos)) {
 			throw AssemblyException.unmovableBlock(pos, state);
 		}
 		if (state.getBlock() instanceof AbstractChassisBlock
@@ -368,7 +368,7 @@ public class ContraptionMixin {
 			if (isAnchoringBlockAt(offsetPos)) {
 				continue;
 			}
-			if (movementAllowed(blockState, world, offsetPos)) {
+			if (!movementAllowed(blockState, world, offsetPos)) {
 				if (offset == forcedDirection) {
 					throw AssemblyException.unmovableBlock(pos, state);
 				}
