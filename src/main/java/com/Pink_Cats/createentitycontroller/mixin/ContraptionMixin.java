@@ -175,7 +175,9 @@ public class ContraptionMixin {
 			frontier.add(pos);
 
 		if (!addToInitialFrontier(world, pos, forcedDirection, frontier))
+			{cir.setReturnValue(false);
 			return; // 直接返回，继续执行原方法
+			}
 
 		for (int limit = 100000; limit > 0; limit--) {
 			if (frontier.isEmpty()) {
@@ -263,7 +265,7 @@ public class ContraptionMixin {
 			cir.setReturnValue(true);
 			return;
 		}
-		if (movementAllowed(state, world, pos)) {
+		if (!movementAllowed(state, world, pos)) {
 			throw AssemblyException.unmovableBlock(pos, state);
 		}
 		if (state.getBlock() instanceof AbstractChassisBlock
@@ -369,7 +371,7 @@ public class ContraptionMixin {
 			if (isAnchoringBlockAt(offsetPos)) {
 				continue;
 			}
-			if (movementAllowed(blockState, world, offsetPos)) {
+			if (!movementAllowed(blockState, world, offsetPos)) {
 				if (offset == forcedDirection) {
 					throw AssemblyException.unmovableBlock(pos, state);
 				}
