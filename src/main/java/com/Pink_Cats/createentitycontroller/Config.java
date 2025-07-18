@@ -65,6 +65,16 @@ public class Config {
                             "minecraft:deepslate","minecraft:stone","minecraft:cobblestone"
             ), Config::validateItemName);
 
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLOCKS_IGNORE =
+            BUILDER.comment("A list of blocks will be ignored by entity control")
+                    .comment("Warning! Make sure these block won't with bug!")
+                    .defineListAllowEmpty("blocks_ignore", List.of(
+                            "createbigcannons:powder_charge","createbigcannons:ap_shot"
+                    ), Config::validateItemName);
+
+
+
+
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLOCKS_UNCRUSHABLE_IGNORE =
             BUILDER.comment("A list of blocks can be crushed by block entities.")
                     .comment("Warning:Block burned by lava might be conflict with player,you can add minecraft:lava to avoid block burned by lava!"
@@ -97,6 +107,7 @@ public class Config {
     public static Set<String> blocks_uncrushableIgnore;
     public static Set<String> blocks_unmoved; // 定义为 Set<String>
     public static List<List<Object>> blocksLimitValues;
+    public static Set<String> blocks_ignore;
 
 
     private static boolean validateItemName(final Object obj) {
@@ -128,5 +139,6 @@ public class Config {
         blocks_uncrushable = new HashSet<>(BLOCKS_UNCRUSHABLE.get());
         blocks_uncrushableIgnore = new HashSet<>(BLOCKS_UNCRUSHABLE_IGNORE.get());
         blocks_unmoved = new HashSet<>(BLACKS_STRING.get());
+        blocks_ignore = new HashSet<>(BLOCKS_IGNORE.get());
     }
 }

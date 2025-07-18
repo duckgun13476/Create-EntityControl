@@ -60,6 +60,7 @@ import java.util.regex.Pattern;
 
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isExtensionPole;
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isPistonHead;
+import static org.lwjgl.system.linux.X11.True;
 
 @Mixin(value = Contraption.class,remap = false)
 public class ContraptionMixin {
@@ -274,7 +275,6 @@ public class ContraptionMixin {
 			return;
 		}
 
-		// 继续你的逻辑
 		if (AllBlocks.BELT.has(state)) {
 			moveBelt(pos, frontier, visited, state);
 		}
@@ -474,32 +474,85 @@ public class ContraptionMixin {
 		}
 	}
 
-
+	private static boolean has_cannon = true;
 	/**
 	 * @author Pink_Cats
 	 * @reason catch_add_block_base
 	 */
 	@Inject(
 			method = "addBlocksToWorld",
-			at = @At("HEAD") // 在方法开始时执行
-			// 可选：如果需要可以取消原方法的执行
+			at = @At("HEAD"), // 在方法开始时执行
+			cancellable = true
 	)
+
+
 	public void injectAddBlocksToWorld(Level world, StructureTransform transform, CallbackInfo ci) {
+
+		//System.out.println(blocks);
+		int calculate = 0;
+		for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
+			String blockString = block.state().getBlock().toString();
+			System.out.println(blockString);
+
+			if (Config.blocks_ignore.stream().anyMatch(blockString::contains))
+			{
+				calculate +=1;
+			}
+		}
+		if (calculate == blocks.size())
+		{
+			System.out.println("this is all ignore entity");
+			return;
+		}
+
+
 		if (disassembled) {
 			return;
 		}
 		disassembled = true;
 
+
+
+		for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
+
+			//BlockPos targetPos = transform.apply(block.pos());
+			//BlockState blockState = world.getBlockState(targetPos);
+			//String blockStateString = blockState.getBlock().toString();
+			//boolean isInIgnoreList = Config.blocks_ignore.stream().anyMatch(blockStateString::contains);
+			//if (isInIgnoreList) {
+				System.out.println("in ignore");
+				return;
+			//}
+		}
+
+
+
+
+		System.out.println("to control");
 		translateMultiblockControllers(transform);
 
 		for (boolean nonBrittles : Iterate.trueAndFalse) {
 			for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
-				if (nonBrittles == BlockMovementChecks.isBrittle(block.state())) {
-					continue;
-				}
+
 
 				BlockPos targetPos = transform.apply(block.pos());
 				BlockState state = transform.apply(block.state());
+
+				BlockState blockState = world.getBlockState(targetPos);
+				boolean squeezeBlock;
+				String blockStateString = blockState.getBlock().toString();
+				boolean isInWhitelist = Config.blocks_uncrushable.stream().anyMatch(blockStateString::contains);
+				boolean isInDropList = Config.blocks_uncrushableIgnore.stream().anyMatch(blockStateString::contains);
+
+
+				System.out.println(blockStateString);
+				System.out.println(Config.blocks_ignore);
+				System.out.println("isInWhitelist: " + isInWhitelist+"isInDropList: " + isInDropList);
+
+
+				if (nonBrittles == BlockMovementChecks.isBrittle(block.state())) {
+					continue;
+				}
 
 				if (customBlockPlacement(world, targetPos, state)) {
 					continue;
@@ -513,15 +566,12 @@ public class ContraptionMixin {
 					}
 				}
 
-				BlockState blockState = world.getBlockState(targetPos);
-				boolean squeezeBlock;
-				String blockStateString = blockState.toString();
-				boolean isInWhitelist = Config.blocks_uncrushable.stream().anyMatch(blockStateString::contains);
-				boolean isInIgnoreList = Config.blocks_uncrushableIgnore.stream().anyMatch(blockStateString::contains);
+				System.out.println("in ignore list");
+
 
 				if (isInWhitelist) {
 					squeezeBlock = true;
-				} else if (isInIgnoreList) {
+				} else if (isInDropList) {
 					squeezeBlock = false;
 				} else {
 					squeezeBlock = (blockState.getDestroySpeed(world, targetPos) > Config.squeeze_destroy_speed);
@@ -537,6 +587,7 @@ public class ContraptionMixin {
 					Block.dropResources(state, world, targetPos, null);
 					continue;
 				}
+
 
 				// 继续原方法的其余逻辑
 				if (state.getBlock() instanceof SimpleWaterloggedBlock && state.hasProperty(BlockStateProperties.WATERLOGGED)) {
@@ -606,6 +657,8 @@ public class ContraptionMixin {
 				if (blockEntity != null) {
 					transform.apply(blockEntity);
 				}
+
+
 			}
 		}
 
