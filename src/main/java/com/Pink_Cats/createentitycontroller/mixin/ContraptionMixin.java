@@ -226,7 +226,6 @@ public class ContraptionMixin {
 				}
 			}
 
-			// 如果方块不在 blocksLimitValues 中，使用默认值
 			if (!found) {
 				totalValue += blockCount * defaultValue;
 			}
@@ -236,8 +235,8 @@ public class ContraptionMixin {
 
 	@Inject(
 			method = "moveBlock",
-			at = @At("HEAD"), // 在方法开始时执行
-			cancellable = true // 可选：如果需要可以取消原方法的执行
+			at = @At("HEAD"),
+			cancellable = true
 	)
 	protected void injectMoveBlock(Level world, @Nullable Direction forcedDirection, Queue<BlockPos> frontier,
 								   Set<BlockPos> visited, CallbackInfoReturnable<Boolean> cir) throws AssemblyException {
@@ -406,8 +405,8 @@ public class ContraptionMixin {
 		addBlock(world, pos, capture(world, pos));
 		if (blocks.size() <= AllConfigs.server().kinetics.maxBlocksMoved.get()) {
 			BlockState blockState = world.getBlockState(pos); // 获取方块状态
-			String blockStateString = blockState.toString();
-			if (Config.blocks_unmoved.stream().anyMatch(blockStateString::contains)) {
+			String blockStateString = blockState.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
+			if (Config.blocks_unmoved.stream().anyMatch(blockStateString::equals)) {
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
 
@@ -488,6 +487,35 @@ public class ContraptionMixin {
 			// 可选：如果需要可以取消原方法的执行
 	)
 	public void injectAddBlocksToWorld(Level world, StructureTransform transform, CallbackInfo ci) {
+
+
+
+
+		// add ignore fix in some entity exp: big cannon added
+		int calculate = 0;
+		for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
+			String blockString = block.state().getBlock().toString();
+
+			if (Config.blocks_ignore.stream().anyMatch(blockString::contains))
+			{
+				calculate +=1;
+			}
+			else{
+				if (Config.debug_block_entity_problem) {
+					createentitycontroller$LOGGER.warn("entity has not ignore block：{}", blockString);
+
+				}
+			}
+		}
+		if (calculate == blocks.size())
+		{
+			//some entity might have its own logic, use return to make them acquire vanilla.
+			return;
+		}
+
+
+
+
 		if (disassembled) {
 			return;
 		}
