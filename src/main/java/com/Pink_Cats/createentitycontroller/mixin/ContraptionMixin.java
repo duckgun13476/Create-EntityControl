@@ -403,8 +403,8 @@ public class ContraptionMixin {
 		addBlock(pos, capture(world, pos));
 		if (blocks.size() <= AllConfigs.server().kinetics.maxBlocksMoved.get()) {
 			BlockState blockState = world.getBlockState(pos); // 获取方块状态
-			String blockStateString = blockState.toString();
-			if (Config.blocks_unmoved.stream().anyMatch(blockStateString::contains)) {
+			String blockStateString = blockState.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
+			if (Config.blocks_unmoved.stream().anyMatch(blockStateString::equals)) {
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
 
@@ -474,34 +474,39 @@ public class ContraptionMixin {
 		}
 	}
 
-	private static boolean has_cannon = true;
 	/**
 	 * @author Pink_Cats
 	 * @reason catch_add_block_base
 	 */
 	@Inject(
 			method = "addBlocksToWorld",
-			at = @At("HEAD"), // 在方法开始时执行
+			at = @At("HEAD"),
 			cancellable = true
 	)
 
 
 	public void injectAddBlocksToWorld(Level world, StructureTransform transform, CallbackInfo ci) {
 
-		//System.out.println(blocks);
+
+		// add ignore fix in some entity exp: big cannon added
 		int calculate = 0;
 		for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
 			String blockString = block.state().getBlock().toString();
-			System.out.println(blockString);
 
 			if (Config.blocks_ignore.stream().anyMatch(blockString::contains))
 			{
 				calculate +=1;
 			}
+			else{
+				if (Config.debug_block_entity_problem) {
+					createentitycontroller$LOGGER.warn("entity has not ignore block：{}", blockString);
+
+				}
+			}
 		}
 		if (calculate == blocks.size())
 		{
-			System.out.println("this is all ignore entity");
+			//some entity might have its own logic, use return to make them acquire vanilla.
 			return;
 		}
 
@@ -513,42 +518,19 @@ public class ContraptionMixin {
 
 
 
-		for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
-
-			//BlockPos targetPos = transform.apply(block.pos());
-			//BlockState blockState = world.getBlockState(targetPos);
-			//String blockStateString = blockState.getBlock().toString();
-			//boolean isInIgnoreList = Config.blocks_ignore.stream().anyMatch(blockStateString::contains);
-			//if (isInIgnoreList) {
-				System.out.println("in ignore");
-				return;
-			//}
-		}
-
-
-
-
-		System.out.println("to control");
 		translateMultiblockControllers(transform);
 
 		for (boolean nonBrittles : Iterate.trueAndFalse) {
 			for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
 
-
 				BlockPos targetPos = transform.apply(block.pos());
 				BlockState state = transform.apply(block.state());
-
 				BlockState blockState = world.getBlockState(targetPos);
+
 				boolean squeezeBlock;
-				String blockStateString = blockState.getBlock().toString();
-				boolean isInWhitelist = Config.blocks_uncrushable.stream().anyMatch(blockStateString::contains);
-				boolean isInDropList = Config.blocks_uncrushableIgnore.stream().anyMatch(blockStateString::contains);
-
-
-				System.out.println(blockStateString);
-				System.out.println(Config.blocks_ignore);
-				System.out.println("isInWhitelist: " + isInWhitelist+"isInDropList: " + isInDropList);
-
+				String blockStateString = blockState.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
+				boolean isInWhitelist = Config.blocks_uncrushable.stream().anyMatch(blockStateString::equals);
+				boolean isInDropList = Config.blocks_uncrushableIgnore.stream().anyMatch(blockStateString::equals);
 
 				if (nonBrittles == BlockMovementChecks.isBrittle(block.state())) {
 					continue;
@@ -558,15 +540,13 @@ public class ContraptionMixin {
 					continue;
 				}
 
-				// 处理非脆弱块
+				// handle not fragile block
 				if (nonBrittles) {
 					for (Direction face : Iterate.directions) {
 						state = state.updateShape(face, world.getBlockState(targetPos.relative(face)), world, targetPos,
 								targetPos.relative(face));
 					}
 				}
-
-				System.out.println("in ignore list");
 
 
 				if (isInWhitelist) {
@@ -589,7 +569,7 @@ public class ContraptionMixin {
 				}
 
 
-				// 继续原方法的其余逻辑
+				// continue
 				if (state.getBlock() instanceof SimpleWaterloggedBlock && state.hasProperty(BlockStateProperties.WATERLOGGED)) {
 					FluidState fluidState = world.getFluidState(targetPos);
 					state = state.setValue(BlockStateProperties.WATERLOGGED, fluidState.getType() == Fluids.WATER);
