@@ -1,6 +1,8 @@
 package com.Pink_Cats.createentitycontroller.mixin;
 
 import com.Pink_Cats.createentitycontroller.Config;
+import com.Pink_Cats.createentitycontroller.addition.StructureBlockStorage;
+import com.Pink_Cats.createentitycontroller.addition.StructureFunc;
 import com.google.common.collect.Multimap;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.AllBlocks;
@@ -58,6 +60,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
+import static com.Pink_Cats.createentitycontroller.addition.StructureBlockStorage.generateRandomUUID;
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isExtensionPole;
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isPistonHead;
 
@@ -488,7 +491,26 @@ public class ContraptionMixin {
 	)
 	public void injectAddBlocksToWorld(Level world, StructureTransform transform, CallbackInfo ci) {
 
+        //same structure ignore
+        //createentitycontroller$LOGGER.warn("with all blocks");
+        //createentitycontroller$LOGGER.warn(String.valueOf(blocks.size()));
 
+        if (Config.keep_structure_at_first) {
+
+            StructureBlockStorage.removeOldEntries(1000L *Config.keep_structure_refresh_time);
+
+            if (StructureFunc.StructureMatch(blocks,transform)){
+                if (Config.debug_block_entity_problem) {
+                    createentitycontroller$LOGGER.warn("same structure jump control");
+
+                }
+            }
+            else {
+                StructureBlockStorage.storeData(generateRandomUUID(), blocks);
+                return;
+            }
+
+        }
 
 
 		// add ignore fix in some entity exp: big cannon added
@@ -515,7 +537,6 @@ public class ContraptionMixin {
 
 
 
-
 		if (disassembled) {
 			return;
 		}
@@ -524,12 +545,17 @@ public class ContraptionMixin {
 		translateMultiblockControllers(transform);
 
 		for (boolean nonBrittles : Iterate.trueAndFalse) {
+
+
+
 			for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
+
 				if (nonBrittles == BlockMovementChecks.isBrittle(block.state())) {
 					continue;
 				}
 
 				BlockPos targetPos = transform.apply(block.pos());
+                //System.out.println(targetPos.toString()+targetPos.getX()+targetPos.getY()+targetPos.getZ());
 				BlockState state = transform.apply(block.state());
 
 				if (customBlockPlacement(world, targetPos, state)) {

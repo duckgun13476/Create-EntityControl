@@ -5,8 +5,8 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "AssemblyExceptionMixin",
-    "ContraptionMixin"
+    "ContraptionMixin",
+    "StructureCheckMixin"
   ],
-
   "minVersion": "0.8"
 }
