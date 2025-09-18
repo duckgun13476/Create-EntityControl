@@ -13,6 +13,9 @@ import java.util.*;
 // Demonstrates how to use Forge's config APIs
 @Mod.EventBusSubscriber(modid = createentitycontroller.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class Config {
+
+
+
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
     public static final ForgeConfigSpec.ConfigValue<List<? extends List<?>>> BLOCKS_LIMIT;
 
@@ -34,6 +37,18 @@ public class Config {
     }
 
 
+    private static final ForgeConfigSpec.BooleanValue KEEP_STRUCTURE_AT_FIRST =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("Default on this config will ignore one entity crush at first time.")
+                    .comment("This can keep miner not broken at the first time crush for helping player.")
+                    .define("keep_structure_at_first", true);
+
+    private static final ForgeConfigSpec.IntValue KEEP_STRUCTURE_REFRESH_TIME =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("The time record list refresh default 3600s")
+                    .comment("If a structure is ignored at first time and if the second time less than 3600s")
+                    .comment("The structure will controlled by this mod while more than 3600s will controlled by Create.")
+                    .defineInRange("keep structure refresh time(s)", 3600, 0, 36000);
 
     private static final ForgeConfigSpec.BooleanValue DEBUG_BLOCK_ENTITY_PROBLEM =
             BUILDER.comment("--------------------------------------------------------------------------")
@@ -129,7 +144,9 @@ public class Config {
     public static int blockEntityXZMaxLength;
     public static int block_entity_max_stabilize_count;
     public static boolean enableBlockEntityExperimentPara;
+    public static boolean keep_structure_at_first;
     public static int blockEntityYMaxLength;
+    public static int keep_structure_refresh_time;
     public static float squeeze_destroy_speed;
     public static Set<String> blocks_uncrushable; // 定义为 Set<String>
     public static Set<String> blocks_uncrushableIgnore;
@@ -168,5 +185,7 @@ public class Config {
         blocks_uncrushableIgnore = new HashSet<>(BLOCKS_UNCRUSHABLE_IGNORE.get());
         blocks_unmoved = new HashSet<>(BLACKS_STRING.get());
         blocks_ignore = new HashSet<>(BLOCKS_IGNORE.get());
+        keep_structure_at_first = KEEP_STRUCTURE_AT_FIRST.get();
+        keep_structure_refresh_time = KEEP_STRUCTURE_REFRESH_TIME.get();
     }
 }

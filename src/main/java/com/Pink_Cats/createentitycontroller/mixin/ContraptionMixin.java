@@ -1,6 +1,8 @@
 package com.Pink_Cats.createentitycontroller.mixin;
 
 import com.Pink_Cats.createentitycontroller.Config;
+import com.Pink_Cats.createentitycontroller.addition.StructureBlockStorage;
+import com.Pink_Cats.createentitycontroller.addition.StructureFunc;
 import com.google.common.collect.Multimap;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.AllBlocks;
@@ -58,6 +60,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
+import static com.Pink_Cats.createentitycontroller.addition.StructureBlockStorage.generateRandomUUID;
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isExtensionPole;
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isPistonHead;
 import static org.lwjgl.system.linux.X11.True;
@@ -255,7 +258,7 @@ public class ContraptionMixin {
 			return;
 		}
 		if (!world.isLoaded(pos)) {
-			throw AssemblyException.unloadedChunk(pos);
+			throw AssemblyException.unloadedChunk(pos );
 		}
 		if (isAnchoringBlockAt(pos)) {
 			cir.setReturnValue(true);
@@ -480,12 +483,32 @@ public class ContraptionMixin {
 	 */
 	@Inject(
 			method = "addBlocksToWorld",
-			at = @At("HEAD"),
-			cancellable = true
-	)
+			at = @At("HEAD")
+    )
 
 
 	public void injectAddBlocksToWorld(Level world, StructureTransform transform, CallbackInfo ci) {
+
+        //same structure ignore
+        //createentitycontroller$LOGGER.warn("with all blocks");
+        //createentitycontroller$LOGGER.warn(String.valueOf(blocks.size()));
+
+        if (Config.keep_structure_at_first) {
+
+            StructureBlockStorage.removeOldEntries(1000L *Config.keep_structure_refresh_time);
+
+            if (StructureFunc.StructureMatch(blocks,transform)){
+                if (Config.debug_block_entity_problem) {
+                    createentitycontroller$LOGGER.warn("same structure jump control");
+
+                }
+            }
+            else {
+                StructureBlockStorage.storeData(generateRandomUUID(), blocks);
+                return;
+            }
+
+        }
 
 
 		// add ignore fix in some entity exp: big cannon added
@@ -511,6 +534,7 @@ public class ContraptionMixin {
 		}
 
 
+
 		if (disassembled) {
 			return;
 		}
@@ -521,26 +545,31 @@ public class ContraptionMixin {
 		translateMultiblockControllers(transform);
 
 		for (boolean nonBrittles : Iterate.trueAndFalse) {
+
+
+
 			for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
 
-				BlockPos targetPos = transform.apply(block.pos());
-				BlockState state = transform.apply(block.state());
-				BlockState blockState = world.getBlockState(targetPos);
+                BlockPos targetPos = transform.apply(block.pos());
+                BlockState state = transform.apply(block.state());
+                BlockState blockState = world.getBlockState(targetPos);
 
-				boolean squeezeBlock;
-				String blockStateString = blockState.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
-				boolean isInWhitelist = Config.blocks_uncrushable.stream().anyMatch(blockStateString::equals);
-				boolean isInDropList = Config.blocks_uncrushableIgnore.stream().anyMatch(blockStateString::equals);
+                boolean squeezeBlock;
+                String blockStateString = blockState.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
+                boolean isInWhitelist = Config.blocks_uncrushable.stream().anyMatch(blockStateString::equals);
+                boolean isInDropList = Config.blocks_uncrushableIgnore.stream().anyMatch(blockStateString::equals);
 
 				if (nonBrittles == BlockMovementChecks.isBrittle(block.state())) {
 					continue;
 				}
 
+
+
 				if (customBlockPlacement(world, targetPos, state)) {
 					continue;
 				}
 
-				// handle not fragile block
+				// 处理非脆弱块
 				if (nonBrittles) {
 					for (Direction face : Iterate.directions) {
 						state = state.updateShape(face, world.getBlockState(targetPos.relative(face)), world, targetPos,
@@ -568,8 +597,7 @@ public class ContraptionMixin {
 					continue;
 				}
 
-
-				// continue
+				// 继续原方法的其余逻辑
 				if (state.getBlock() instanceof SimpleWaterloggedBlock && state.hasProperty(BlockStateProperties.WATERLOGGED)) {
 					FluidState fluidState = world.getFluidState(targetPos);
 					state = state.setValue(BlockStateProperties.WATERLOGGED, fluidState.getType() == Fluids.WATER);
