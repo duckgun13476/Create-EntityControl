@@ -261,40 +261,80 @@ jar {
 
 }
 
+tasks.register('printReobfJarPath') {
+    doLast {
+        println "Reobfuscated JAR file path: ${reobfJar.archiveFile.get().asFile.absolutePath}"
+        def versionParts = mod_version.split("-")
+        println "version = \"$minecraft_version-$mod_version\"\n" +
+                "    displayName = \"${display_name}_v${versionParts[0]}_for_Create_v${versionParts[1]}\""
+        def propertiesFile = file('api.properties')
+        if (propertiesFile.exists()) {
+            def properties = new Properties()
+            properties.load(new FileInputStream(propertiesFile))
+            def cfToken = properties.getProperty("CF_TOKEN")
+            def modrinthToken = properties.getProperty("MODRINTH_TOKEN")
+
+            println "CF_TOKEN: $cfToken"
+            println "MODRINTH_TOKEN: $modrinthToken"
+        } else {
+            println "api.properties not exist"
+        }
+    }
+}
 
 
 publishMods {
+    def forge_p = false
+    def modrinth_p = true
+    def propertiesFile = file('api.properties')
+    def properties = new Properties()
+    properties.load(new FileInputStream(propertiesFile))
+    def cfTokenGet = properties.getProperty("CF_TOKEN")
+    def modrinthTokenGet = properties.getProperty("MODRINTH_TOKEN")
+
+
     file = reobfJar.archiveFile
     changelog = rootProject.file("changes/${minecraft_version}-${mod_version}.md").text
     type = STABLE
     version = "$minecraft_version-$mod_version"
-    displayName = "$display_name $mod_version for mc$minecraft_version"
+    def versionParts = mod_version.split("-")
+    displayName = "${display_name}_v${versionParts[0]}_for_Create_v${versionParts[1]}"
     modLoaders.add("forge")
     modLoaders.add("neoforge")
 
-    var cfToken = System.getenv("CF_TOKEN")
+    var cfToken = cfTokenGet
     if(cfToken != null) {
-        curseforge {
-            accessToken = providers.environmentVariable("CF_TOKEN")
-            projectId = "${curseforge_id}"
-            minecraftVersions.add(minecraft_version)
-            clientRequired = true
-            serverRequired = true
-            requires("create")
-            optional("jei", "kubejs","kubejs-create","crafttweaker","createtweaker")
+        if (forge_p)
+        {
+            curseforge {
+                accessToken = cfTokenGet
+                projectId = "${curseforge_id}"
+                minecraftVersions.add(minecraft_version)
+                clientRequired = true
+                serverRequired = true
+                requires("create")
+                optional("observable")
+            }
         }
+
     }
-    var mrToken = System.getenv("MODRINTH_TOKEN")
+    var mrToken = modrinthTokenGet
     if(mrToken != null) {
-        modrinth {
-            accessToken = providers.environmentVariable("MODRINTH_TOKEN")
-            projectId = "${modrinth_id}"
-            minecraftVersions.add(minecraft_version)
-            requires("create")
-            optional("jei", "kubejs","kubejs-create","crafttweaker","createtweaker")
+        if (modrinth_p)
+        {
+            modrinth {
+                accessToken = modrinthTokenGet
+                projectId = "${modrinth_id}"
+                minecraftVersions.add(minecraft_version)
+                requires("create")
+                optional("observable")
+            }
         }
     }
 }
+
+
+
 
 
 String calculateGitHash() {
