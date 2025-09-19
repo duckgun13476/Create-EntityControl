@@ -1,6 +1,7 @@
 package com.Pink_Cats.createentitycontroller.mixin;
 
 import com.Pink_Cats.createentitycontroller.Config;
+import com.Pink_Cats.createentitycontroller.addition.EntityEnrollment;
 import com.Pink_Cats.createentitycontroller.addition.StructureBlockStorage;
 import com.Pink_Cats.createentitycontroller.addition.StructureFunc;
 import com.google.common.collect.Multimap;
@@ -63,7 +64,6 @@ import java.util.regex.Pattern;
 import static com.Pink_Cats.createentitycontroller.addition.StructureBlockStorage.generateRandomUUID;
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isExtensionPole;
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isPistonHead;
-import static org.lwjgl.system.linux.X11.True;
 
 @Mixin(value = Contraption.class,remap = false)
 public class ContraptionMixin {
@@ -194,6 +194,7 @@ public class ContraptionMixin {
 					}
 					System.setProperty("globalValue", Integer.toString(totalValue));
 					System.setProperty("globalCount", Integer.toString(globalCount));
+
 
 					if (totalValue > Config.block_entity_max_stabilize_count) {
 						throw AssemblyException.structureTooLarge();
@@ -408,7 +409,9 @@ public class ContraptionMixin {
 			BlockState blockState = world.getBlockState(pos); // 获取方块状态
 			String blockStateString = blockState.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
 			if (Config.blocks_unmoved.stream().anyMatch(blockStateString::equals)) {
-				throw AssemblyException.unmovableBlock(pos, state);
+                EntityEnrollment.setControlStatus(8);
+                throw AssemblyException.unmovableBlock(pos, state);
+
 			}
 
 			// count
@@ -433,6 +436,7 @@ public class ContraptionMixin {
 					if (Config.debug_block_entity_problem) {
                         createentitycontroller$LOGGER.info("{} count: {} allowed: {}", blockName, currentCount, allowedCount);
 					}
+                    EntityEnrollment.setControlStatus(16);
 					throw AssemblyException.unmovableBlock(pos, state);
 				}
 			}
@@ -462,12 +466,15 @@ public class ContraptionMixin {
 
 			// System.out.println("maxPos: " + maxPos +", minPos: " + minPos);
 			if ((createentitycontroller$maxPos.getX() - createentitycontroller$minPos.getX()) > Config.blockEntityXZMaxLength) {
+                EntityEnrollment.setControlStatus(32);
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
 			if ((createentitycontroller$maxPos.getY() - createentitycontroller$minPos.getY()) > Config.blockEntityYMaxLength) {
+                EntityEnrollment.setControlStatus(32);
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
 			if ((createentitycontroller$maxPos.getZ() - createentitycontroller$minPos.getZ()) > Config.blockEntityXZMaxLength) {
+                EntityEnrollment.setControlStatus(32);
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
 
