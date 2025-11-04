@@ -77,16 +77,26 @@ public class Config {
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLACKS_STRING =
             BUILDER.comment("--------------------------------------------------------------------------")
                     .comment("A list of blocks can't be moved and change into block entities.")
-                    .defineListAllowEmpty("blocks_unmoved", List.of(
-                            "minecraft:deepslate","minecraft:stone","minecraft:cobblestone",
-                            "create:belt","create:mechanical_crafter"
+                    .defineList("blocks_unmoved", List.of(
+                            "create:mechanical_crafter", "supplementaries:notice_board",
+                            "minecraft:cobblestone", "minecraft:stone",
+                            "minecraft:deepslate", "create:belt",
+                            "lightmanscurrency:coin_chest", "create:white_toolbox",
+                            "create:orange_toolbox", "create:magenta_toolbox",
+                            "create:yellow_toolbox", "create:lime_toolbox",
+                            "create:brown_toolbox", "create:pink_toolbox",
+                            "create:gray_toolbox", "create:light_gray_toolbox",
+                            "create:light_blue_toolbox", "create:blue_toolbox",
+                            "create:purple_toolbox", "create:cyan_toolbox",
+                            "create:green_toolbox", "create:red_toolbox",
+                            "create:black_toolbox", "minecraft:spawner"
                     ), Config::validateItemName);
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLOCKS_UNCRUSHABLE =
             BUILDER.comment("--------------------------------------------------------------------------")
                     .comment("A list of blocks can't be crushed by block entities. ")
                     .comment("If you squeeze a stone with dirt and stone in this list the dirt will drop while stone leave!")
-                    .defineListAllowEmpty("blocks_uncrushable", List.of(
+                    .defineList("blocks_uncrushable", List.of(
                             "minecraft:deepslate","minecraft:stone","minecraft:cobblestone"
             ), Config::validateItemName);
 
@@ -98,7 +108,7 @@ public class Config {
                     .comment("If you add fluid, these fluid will vanish like create vanilla")
                     .comment("Warning:Block burned by lava might be conflict with player,you can add minecraft:lava to avoid block burned by lava!"
                     )
-                    .defineListAllowEmpty("blocks_crushable", List.of(
+                    .defineList("blocks_crushable", List.of(
                             "minecraft:water"
                     ), Config::validateItemName);
 
@@ -111,7 +121,7 @@ public class Config {
                     .comment("Add all of them in this list will ignore these entity")
                     .comment("default config compat with Create:big cannon! Just add new block not remove them!  ")
                     .comment("Warning! Make sure these new added block won't with bug!")
-                    .defineListAllowEmpty("blocks_ignore", List.of(
+                    .defineList("blocks_ignore", List.of(
                             "create:piston_extension_pole", "createbigcannons:ap_shot", "createbigcannons:powder_charge", "createbigcannons:ram_head",
                             "createbigcannons:worm_head","createbigcannons:solid_shot","createbigcannons:ap_shot","createbigcannons:mortar_stone",
                             "createbigcannons:bag_of_grapeshot","createbigcannons:he_shell","createbigcannons:ap_shell","createbigcannons:shrapnel_shell",

@@ -23,7 +23,7 @@ import com.simibubi.create.content.kinetics.simpleRelays.ShaftBlock;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
 import com.simibubi.create.foundation.blockEntity.IMultiBlockEntityContainer;
 import com.simibubi.create.infrastructure.config.AllConfigs;
-import info.journeymap.shaded.org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 import com.simibubi.create.foundation.utility.Iterate;
 import com.simibubi.create.foundation.utility.UniqueLinkedList;
 import com.simibubi.create.foundation.utility.NBTProcessors;
@@ -509,7 +509,7 @@ public class ContraptionMixin {
 		// add ignore fix in some entity exp: big cannon added
 		int calculate = 0;
 		for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
-			String blockString = block.state().getBlock().toString();
+			String blockString = block.state.getBlock().toString();
 
 			if (Config.blocks_ignore.stream().anyMatch(blockString::contains))
 			{
@@ -546,8 +546,8 @@ public class ContraptionMixin {
 
 			for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
 
-                BlockPos targetPos = transform.apply(block.pos());
-                BlockState state = transform.apply(block.state());
+                BlockPos targetPos = transform.apply(block.pos);
+                BlockState state = transform.apply(block.state);
                 BlockState blockState = world.getBlockState(targetPos);
 
                 boolean squeezeBlock;
@@ -555,7 +555,7 @@ public class ContraptionMixin {
                 boolean isInWhitelist = Config.blocks_uncrushable.stream().anyMatch(blockStateString::equals);
                 boolean isInDropList = Config.blocks_uncrushableIgnore.stream().anyMatch(blockStateString::equals);
 
-				if (nonBrittles == BlockMovementChecks.isBrittle(block.state())) {
+				if (nonBrittles == BlockMovementChecks.isBrittle(block.state)) {
 					continue;
 				}
 
@@ -626,7 +626,7 @@ public class ContraptionMixin {
 				}
 
 				BlockEntity blockEntity = world.getBlockEntity(targetPos);
-				CompoundTag tag = block.nbt();
+				CompoundTag tag = block.nbt;
 
 				// 处理 Sculk Sensor
 				if (state.is(Blocks.SCULK_SENSOR) || state.is(Blocks.SCULK_SHRIEKER)) {
@@ -669,8 +669,8 @@ public class ContraptionMixin {
 			if (!shouldUpdateAfterMovement(block)) {
 				continue;
 			}
-			BlockPos targetPos = transform.apply(block.pos());
-			world.markAndNotifyBlock(targetPos, world.getChunkAt(targetPos), block.state(), block.state(),
+			BlockPos targetPos = transform.apply(block.pos);
+			world.markAndNotifyBlock(targetPos, world.getChunkAt(targetPos), block.state, block.state,
 					Block.UPDATE_MOVE_BY_PISTON | Block.UPDATE_ALL, 512);
 		}
 

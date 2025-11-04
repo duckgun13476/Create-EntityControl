@@ -16,8 +16,8 @@ public class StructureFunc {
         Map<Block, List<int[]>> axis_result = new HashMap<>();
 
         for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
-            Block blockType = block.state().getBlock();
-            BlockPos pos = block.pos();
+            Block blockType = block.state.getBlock();
+            BlockPos pos = block.pos;
             int[] coordinates = new int[]{pos.getX(), pos.getY(), pos.getZ()};
 
             // 检查该 Block 是否已经存在于 map 中
@@ -103,15 +103,15 @@ public class StructureFunc {
 
                 // 统计 entryData 中的方块数量
                 for (StructureTemplate.StructureBlockInfo block : entry.getData().values()) {
-                    Block blockType = block.state().getBlock();
+                    Block blockType = block.state.getBlock();
                     entryBlockCount.put(blockType, entryBlockCount.getOrDefault(blockType, 0) + 1);
                 }
 
                 // 统计 blocks 中的方块数量
                 for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
-                    Block blockType = block.state().getBlock();
+                    Block blockType = block.state.getBlock();
                     blockCount.put(blockType, blockCount.getOrDefault(blockType, 0) + 1);
-                    BlockPos pos = block.pos();
+                    BlockPos pos = block.pos;
                     //System.out.println(pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
                     pos.rotate(CLOCKWISE_90);
                     //System.out.println(pos.getX() + ", " + pos.getY() + ", " + pos.getZ());

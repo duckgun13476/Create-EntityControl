@@ -175,66 +175,10 @@ repositories {
 dependencies {
     implementation 'org.jetbrains:annotations:22.0.0'
 
-
     //Create
-    modImplementation("curse.maven:create-328085:5838779")
-    //modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
-    //modImplementation("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
-    //modCompileOnly("dev.jozufozu.flywheel:flywheel-forge-api-${flywheel_minecraft_version}:${flywheel_version}")
-    //modRuntimeOnly("com.jozufozu.flywheel:flywheel-forge-${flywheel_minecraft_version}:${flywheel_version}")
-
-
+    modImplementation("curse.maven:create-328085:5797604")
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
-
-
-    //rhino
-    modImplementation("curse.maven:rhino-416294:6186971")
-    //modImplementation("dev.latvian.mods:rhino-forge:${rhino_version}")
-
-    modImplementation("dev.architectury:architectury-forge:${architectury_version}")
-
-    //kubejs
-    modImplementation("curse.maven:kubejs-238086:5853326")
-    //modImplementation("dev.latvian.mods:kubejs-forge:${kubejs_version}")
-
-    //big cannon
-    modImplementation("curse.maven:create-big-cannons-646668:6064368")
-
-    modImplementation("mezz.jei:jei-${jei_minecraft_version}-forge:${jei_version}")
-
-    //curios
-    modImplementation("curse.maven:curios-309927:6418456")
-    //modCompileOnly("top.theillusivec4.curios:curios-forge:${curios_version}+${curios_minecraft_version}:api")
-    //modRuntimeOnly("top.theillusivec4.curios:curios-forge:${curios_version}+${curios_minecraft_version}")
-
-
-    modImplementation("curse.maven:jade-324717:${jade_id}")
-    modImplementation("curse.maven:journeymap-32274:5457831")
-
-    if (cc_tweaked_enable.toBoolean()) {
-        compileOnly(fg.deobf('com.blamejared.crafttweaker:CraftTweaker-forge-1.20.1:[VERSION]'))
-        modCompileOnly("cc.tweaked:cc-tweaked-${cc_tweaked_minecraft_version}-core-api:${cc_tweaked_version}")
-        modCompileOnly("cc.tweaked:cc-tweaked-${cc_tweaked_minecraft_version}-forge-api:${cc_tweaked_version}")
-        modRuntimeOnly("cc.tweaked:cc-tweaked-${cc_tweaked_minecraft_version}-forge:${cc_tweaked_version}")
-    }
-    /*if (ct_enabled.toBoolean()) {
-        def minecraftVersion= "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-        def ctDep = "com.blamejared.crafttweaker:CraftTweaker-forge-${minecraft_version}:${ct_version}"
-        def ctCreateDep = "com.blamejared.crafttweaker:CraftTweaker-forge-${minecraft_version}:${ct_version}"
-        modImplementation(ctDep)
-        modImplementation(ctCreateDep)
-
-        modImplementation("com.blamejared.createtweaker:CreateTweaker-${minecraft_version}:${ct_create_version}")
-        annotationProcessor 'com.blamejared.crafttweaker:Crafttweaker_Annotation_Processors:3.0.0.10'
-        annotationProcessor minecraftVersion
-        annotationProcessor ctDep
-        annotationProcessor ctCreateDep
-    }*/
-
-    if (System.getProperty('idea.sync.active') != 'true') {
-        annotationProcessor "org.spongepowered:mixin:${mixin_version}:processor"
-    }
 }
 
 
