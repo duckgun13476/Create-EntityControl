@@ -78,8 +78,18 @@ public class Config {
             BUILDER.comment("--------------------------------------------------------------------------")
                     .comment("A list of blocks can't be moved and change into block entities.")
                     .defineListAllowEmpty("blocks_unmoved", List.of(
-                            "minecraft:deepslate","minecraft:stone","minecraft:cobblestone",
-                            "create:belt","create:mechanical_crafter"
+                            "create:mechanical_crafter", "supplementaries:notice_board",
+                            "minecraft:cobblestone", "minecraft:stone",
+                            "minecraft:deepslate", "create:belt",
+                            "lightmanscurrency:coin_chest", "create:white_toolbox",
+                            "create:orange_toolbox", "create:magenta_toolbox",
+                            "create:yellow_toolbox", "create:lime_toolbox",
+                            "create:brown_toolbox", "create:pink_toolbox",
+                            "create:gray_toolbox", "create:light_gray_toolbox",
+                            "create:light_blue_toolbox", "create:blue_toolbox",
+                            "create:purple_toolbox", "create:cyan_toolbox",
+                            "create:green_toolbox", "create:red_toolbox",
+                            "create:black_toolbox", "minecraft:spawner"
                     ), Config::validateItemName);
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLOCKS_UNCRUSHABLE =
