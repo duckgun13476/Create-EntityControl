@@ -239,11 +239,7 @@ public class ContraptionMixin {
 		return totalValue;
 	}
 
-	@Inject(
-			method = "moveBlock",
-			at = @At("HEAD"), // 在方法开始时执行
-			cancellable = true // 可选：如果需要可以取消原方法的执行
-	)
+	@Inject(method = "moveBlock", at = @At("HEAD"), cancellable = true)
 	protected void injectMoveBlock(Level world, @Nullable Direction forcedDirection, Queue<BlockPos> frontier,
 								   Set<BlockPos> visited, CallbackInfoReturnable<Boolean> cir) throws AssemblyException {
 		BlockPos pos = frontier.poll();
@@ -405,6 +401,7 @@ public class ContraptionMixin {
 		}
 
 		addBlock(pos, capture(world, pos));
+
 		if (blocks.size() <= AllConfigs.server().kinetics.maxBlocksMoved.get()) {
 			BlockState blockState = world.getBlockState(pos); // 获取方块状态
 			String blockStateString = blockState.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
@@ -441,8 +438,6 @@ public class ContraptionMixin {
 				}
 			}
 
-			// distance
-			// System.out.println("pos: " + pos);
 
 			if (pos.getX() < createentitycontroller$minPos.getX()) {
 				createentitycontroller$minPos = new BlockPos(pos.getX(), createentitycontroller$minPos.getY(), createentitycontroller$minPos.getZ());
@@ -478,6 +473,7 @@ public class ContraptionMixin {
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
 
+            cir.cancel();
 			cir.setReturnValue(true);
         } else {
 			throw AssemblyException.structureTooLarge();
@@ -488,18 +484,10 @@ public class ContraptionMixin {
 	 * @author Pink_Cats
 	 * @reason catch_add_block_base
 	 */
-	@Inject(
-			method = "addBlocksToWorld",
-			at = @At("HEAD")
-    )
-
-
+	@Inject(method = "addBlocksToWorld", at = @At("HEAD"),cancellable = true)
 	public void injectAddBlocksToWorld(Level world, StructureTransform transform, CallbackInfo ci) {
 
         //same structure ignore
-        //createentitycontroller$LOGGER.warn("with all blocks");
-        //createentitycontroller$LOGGER.warn(String.valueOf(blocks.size()));
-
         if (Config.keep_structure_at_first) {
 
             StructureBlockStorage.removeOldEntries(1000L *Config.keep_structure_refresh_time);
@@ -543,6 +531,7 @@ public class ContraptionMixin {
 
 
 		if (disassembled) {
+            ci.cancel();
 			return;
 		}
 		disassembled = true;
@@ -604,7 +593,6 @@ public class ContraptionMixin {
 					continue;
 				}
 
-				// 继续原方法的其余逻辑
 				if (state.getBlock() instanceof SimpleWaterloggedBlock && state.hasProperty(BlockStateProperties.WATERLOGGED)) {
 					FluidState fluidState = world.getFluidState(targetPos);
 					state = state.setValue(BlockStateProperties.WATERLOGGED, fluidState.getType() == Fluids.WATER);
@@ -695,6 +683,8 @@ public class ContraptionMixin {
 
 			storage.clear();
 		}
+
+        ci.cancel();
 	}
 }
 

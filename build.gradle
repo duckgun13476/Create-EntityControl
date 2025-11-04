@@ -1,7 +1,11 @@
+import net.darkhax.curseforgegradle.TaskPublishCurseForge
+
+
 plugins {
 
     id "net.neoforged.moddev.legacyforge" version "2.0.74"
     id "dev.ithundxr.silk" version "0.11.15"
+    id 'net.darkhax.curseforgegradle' version '[1.1.24,)'
     id "me.modmuss50.mod-publish-plugin" version "0.8.3"
     id "idea"
 }
@@ -261,12 +265,16 @@ jar {
 
 }
 
-tasks.register('printReobfJarPath') {
+reobfJar {
+    archiveFileName = "${package_name}-${mod_version}-forge-${minecraft_version}.jar"
+}
+
+tasks.register('PublishInfo') {
     doLast {
-        println "Reobfuscated JAR file path: ${reobfJar.archiveFile.get().asFile.absolutePath}"
+        println "Reobfuscated JAR file path: ${jar.archiveFile.get().asFile.absolutePath}"
         def versionParts = mod_version.split("-")
         println "version = \"$minecraft_version-$mod_version\"\n" +
-                "    displayName = \"${display_name}_v${versionParts[0]}_for_Create_v${versionParts[1]}\""
+                "    displayName = \"${display_name}_v${versionParts[0]}_for_Create_v${versionParts[1]}_forge\""
         def propertiesFile = file('api.properties')
         if (propertiesFile.exists()) {
             def properties = new Properties()
@@ -280,55 +288,73 @@ tasks.register('printReobfJarPath') {
             println "api.properties not exist"
         }
     }
+    group = 'Publishing'
 }
 
 
-publishMods {
-    def forge_p = false
-    def modrinth_p = true
+tasks.register('publishAll') {
+    dependsOn 'publishCurseForge'
+    dependsOn 'publishMods'
+    group = 'Publishing'
+}
+
+
+
+
+tasks.register('publishCurseForge', TaskPublishCurseForge) {
+    dependsOn 'reobfJar'
     def propertiesFile = file('api.properties')
     def properties = new Properties()
     properties.load(new FileInputStream(propertiesFile))
-    def cfTokenGet = properties.getProperty("CF_TOKEN")
-    def modrinthTokenGet = properties.getProperty("MODRINTH_TOKEN")
 
+    var cfToken = properties.getProperty("CF_TOKEN")
+    apiToken = cfToken
+    def versionParts = mod_version.split("-")
+
+    def mainFile = upload(curseforge_id, new File("./build/libs/${package_name}-${mod_version}-forge-${minecraft_version}.jar"))
+    mainFile.changelog = new File("./update/${versionParts[0]}-changelog.md").text.split("\n\n\n")[0]
+    mainFile.addEnvironment("Client", "Server")
+    mainFile.addGameVersion("${minecraft_version}")
+    mainFile.addModLoader("Forge","NeoForge")
+    mainFile.addRequirement("create")
+
+
+    mainFile.displayName = "${display_name}_v${versionParts[0]}_for_Create_v${versionParts[1]}_forge"
+
+    mainFile.addOptional(
+            "jei",
+            "observable")
+    mainFile.releaseType = publish_version //beta release. is alpha.
+    disableVersionDetection()
+}
+
+
+
+
+publishMods {
+    def propertiesFile = file('api.properties')
+    def properties = new Properties()
+    properties.load(new FileInputStream(propertiesFile))
+    def modrinthTokenGet = properties.getProperty("MODRINTH_TOKEN")
+    def versionParts = mod_version.split("-")
 
     file = reobfJar.archiveFile
-    changelog = rootProject.file("changes/${minecraft_version}-${mod_version}.md").text
+    changelog = rootProject.file("./update/${versionParts[0]}-changelog.md").text
     type = STABLE
     version = "$minecraft_version-$mod_version"
-    def versionParts = mod_version.split("-")
     displayName = "${display_name}_v${versionParts[0]}_for_Create_v${versionParts[1]}"
+
     modLoaders.add("forge")
     modLoaders.add("neoforge")
 
-    var cfToken = cfTokenGet
-    if(cfToken != null) {
-        if (forge_p)
-        {
-            curseforge {
-                accessToken = cfTokenGet
-                projectId = "${curseforge_id}"
-                minecraftVersions.add(minecraft_version)
-                clientRequired = true
-                serverRequired = true
-                requires("create")
-                optional("observable")
-            }
-        }
-
-    }
     var mrToken = modrinthTokenGet
     if(mrToken != null) {
-        if (modrinth_p)
-        {
-            modrinth {
-                accessToken = modrinthTokenGet
-                projectId = "${modrinth_id}"
-                minecraftVersions.add(minecraft_version)
-                requires("create")
-                optional("observable")
-            }
+        modrinth {
+            accessToken = mrToken
+            projectId = "${modrinth_id}"
+            minecraftVersions.add(minecraft_version)
+            requires("create")
+            optional("jei","observable")
         }
     }
 }

@@ -42,7 +42,7 @@ public class StructureFunc {
                     //System.out.println("start"+coord[0] + " " + coord[1] + " " + coord[2]);
                     int[] newCoord = new int[coord.length];
                     newCoord[2] = coord[0];
-                    newCoord[0] = coord[2];  // 反转第零位和第一位
+                    newCoord[0] = coord[2];  // Reverse pos Zero and First
                     newCoord[1] = coord[1];
 
 
@@ -137,7 +137,7 @@ public class StructureFunc {
                     // 反转坐标并比较
                     for (int i = 0; i < 3; i++) { // 旋转90度三次
                         newer_structure = reverseCoordinates(newer_structure);
-                        System.out.println("new 0 " + exist_structureToString(newer_structure));
+                        //System.out.println("new 0 " + exist_structureToString(newer_structure));
                         if (compareBlockCoordinates(exist_structure, newer_structure)) {
                             return true;
                         }
