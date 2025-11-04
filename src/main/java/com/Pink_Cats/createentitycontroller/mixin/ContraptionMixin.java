@@ -72,7 +72,7 @@ public class ContraptionMixin {
     }
     @Shadow
     protected boolean movementAllowed(BlockState state, Level world, BlockPos pos) {
-        return true;
+        return false;
     }
     @Shadow
     protected boolean isAnchoringBlockAt(BlockPos pos) {
@@ -175,10 +175,10 @@ public class ContraptionMixin {
 		if (!BlockMovementChecks.isBrittle(world.getBlockState(pos)))
 			frontier.add(pos);
 
-		if (!addToInitialFrontier(world, pos, forcedDirection, frontier))
-			{cir.setReturnValue(false);
+		if (!addToInitialFrontier(world, pos, forcedDirection, frontier)) {
+            cir.setReturnValue(false);
 			return; // 直接返回，继续执行原方法
-			}
+        }
 
 		for (int limit = 100000; limit > 0; limit--) {
 			if (frontier.isEmpty()) {
@@ -228,6 +228,7 @@ public class ContraptionMixin {
 				}
 			}
 
+			// 如果方块不在 blocksLimitValues 中，使用默认值
 			if (!found) {
 				totalValue += blockCount * defaultValue;
 			}
@@ -235,11 +236,7 @@ public class ContraptionMixin {
 		return totalValue;
 	}
 
-	@Inject(
-			method = "moveBlock",
-			at = @At("HEAD"),
-			cancellable = true
-	)
+	@Inject(method = "moveBlock", at = @At("HEAD"), cancellable = true)
 	protected void injectMoveBlock(Level world, Direction forcedDirection, Queue<BlockPos> frontier,
 								   Set<BlockPos> visited, CallbackInfoReturnable<Boolean> cir) throws AssemblyException {
 		BlockPos pos = frontier.poll();
@@ -255,7 +252,7 @@ public class ContraptionMixin {
 			return;
 		}
 		if (!world.isLoaded(pos)) {
-			throw AssemblyException.unloadedChunk(pos);
+			throw AssemblyException.unloadedChunk(pos );
 		}
 		if (isAnchoringBlockAt(pos)) {
 			cir.setReturnValue(true);
@@ -275,7 +272,6 @@ public class ContraptionMixin {
 			return;
 		}
 
-		// 继续你的逻辑
 		if (AllBlocks.BELT.has(state)) {
 			moveBelt(pos, frontier, visited, state);
 		}
@@ -441,8 +437,6 @@ public class ContraptionMixin {
 				}
 			}
 
-			// distance
-			// System.out.println("pos: " + pos);
 
 			if (pos.getX() < createentitycontroller$minPos.getX()) {
 				createentitycontroller$minPos = new BlockPos(pos.getX(), createentitycontroller$minPos.getY(), createentitycontroller$minPos.getZ());
@@ -478,28 +472,21 @@ public class ContraptionMixin {
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
 
+            cir.cancel();
 			cir.setReturnValue(true);
         } else {
 			throw AssemblyException.structureTooLarge();
 		}
 	}
 
-
 	/**
 	 * @author Pink_Cats
 	 * @reason catch_add_block_base
 	 */
-	@Inject(
-			method = "addBlocksToWorld",
-			at = @At("HEAD") // 在方法开始时执行
-			// 可选：如果需要可以取消原方法的执行
-	)
+	@Inject(method = "addBlocksToWorld", at = @At("HEAD"),cancellable = true)
 	public void injectAddBlocksToWorld(Level world, StructureTransform transform, CallbackInfo ci) {
 
         //same structure ignore
-        //createentitycontroller$LOGGER.warn("with all blocks");
-        //createentitycontroller$LOGGER.warn(String.valueOf(blocks.size()));
-
         if (Config.keep_structure_at_first) {
 
             StructureBlockStorage.removeOldEntries(1000L *Config.keep_structure_refresh_time);
@@ -543,6 +530,7 @@ public class ContraptionMixin {
 
 
 		if (disassembled) {
+            ci.cancel();
 			return;
 		}
 		disassembled = true;
@@ -555,13 +543,20 @@ public class ContraptionMixin {
 
 			for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
 
+                BlockPos targetPos = transform.apply(block.pos());
+                BlockState state = transform.apply(block.state());
+                BlockState blockState = world.getBlockState(targetPos);
+
+                boolean squeezeBlock;
+                String blockStateString = blockState.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
+                boolean isInWhitelist = Config.blocks_uncrushable.stream().anyMatch(blockStateString::equals);
+                boolean isInDropList = Config.blocks_uncrushableIgnore.stream().anyMatch(blockStateString::equals);
+
 				if (nonBrittles == BlockMovementChecks.isBrittle(block.state())) {
 					continue;
 				}
 
-				BlockPos targetPos = transform.apply(block.pos());
-                //System.out.println(targetPos.toString()+targetPos.getX()+targetPos.getY()+targetPos.getZ());
-				BlockState state = transform.apply(block.state());
+
 
 				if (customBlockPlacement(world, targetPos, state)) {
 					continue;
@@ -575,15 +570,10 @@ public class ContraptionMixin {
 					}
 				}
 
-				BlockState blockState = world.getBlockState(targetPos);
-				boolean squeezeBlock;
-				String blockStateString = blockState.toString();
-				boolean isInWhitelist = Config.blocks_uncrushable.stream().anyMatch(blockStateString::contains);
-				boolean isInIgnoreList = Config.blocks_uncrushableIgnore.stream().anyMatch(blockStateString::contains);
 
 				if (isInWhitelist) {
 					squeezeBlock = true;
-				} else if (isInIgnoreList) {
+				} else if (isInDropList) {
 					squeezeBlock = false;
 				} else {
 					squeezeBlock = (blockState.getDestroySpeed(world, targetPos) > Config.squeeze_destroy_speed);
@@ -689,6 +679,8 @@ public class ContraptionMixin {
 				world.addFreshEntity(new SuperGlueEntity(world, box));
 			}
 		}
+
+        ci.cancel();
 	}
 }
 
