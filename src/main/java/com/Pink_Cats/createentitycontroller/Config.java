@@ -90,7 +90,8 @@ public class Config {
                             "create:light_blue_toolbox", "create:blue_toolbox",
                             "create:purple_toolbox", "create:cyan_toolbox",
                             "create:green_toolbox", "create:red_toolbox",
-                            "create:black_toolbox", "minecraft:spawner"
+                            "create:black_toolbox", "minecraft:spawner",
+                            "mynethersdelight:powdery_cannon"
                     ), Config::validateItemName);
 
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKS_UNCRUSHABLE =
