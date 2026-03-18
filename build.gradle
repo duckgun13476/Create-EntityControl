@@ -166,7 +166,7 @@ jar {
     }
     archiveFileName = "${package_name}-${mod_version}-neoforge-${minecraft_version}.jar"
     manifest.attributes([
-            "MixinConfigs": "createentitycontroller.mixins.json",
+            "MixinConfigs": "createentitycontrol.mixins.json",
             "Git-Hash"    :  gitHash
     ])
 

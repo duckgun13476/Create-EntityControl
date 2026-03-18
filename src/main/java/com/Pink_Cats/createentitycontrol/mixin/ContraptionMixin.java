@@ -23,6 +23,7 @@ import com.simibubi.create.content.kinetics.simpleRelays.ShaftBlock;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
 import com.simibubi.create.foundation.blockEntity.IMultiBlockEntityContainer;
 import com.simibubi.create.infrastructure.config.AllConfigs;
+import info.journeymap.shaded.org.jetbrains.annotations.Nullable;
 import net.createmod.catnip.data.Iterate;
 import net.createmod.catnip.data.UniqueLinkedList;
 import net.createmod.catnip.nbt.NBTProcessors;
@@ -45,6 +46,7 @@ import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.tuple.Pair;
+
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -58,7 +60,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.Pink_Cats.createentitycontroller.addition.StructureBlockStorage.generateRandomUUID;
+
+import static com.Pink_Cats.createentitycontrol.addition.StructureBlockStorage.generateRandomUUID;
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isExtensionPole;
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isPistonHead;
 
@@ -137,7 +140,7 @@ public class ContraptionMixin {
 	}
 
 	@Shadow
-	protected boolean moveBlock(Level world, Direction forcedDirection, Queue<BlockPos> frontier,
+	protected boolean moveBlock(Level world, @javax.annotation.Nullable Direction forcedDirection, Queue<BlockPos> frontier,
 								Set<BlockPos> visited) {return false;}
 
 	@Unique
@@ -237,7 +240,7 @@ public class ContraptionMixin {
 	}
 
 	@Inject(method = "moveBlock", at = @At("HEAD"), cancellable = true)
-	protected void injectMoveBlock(Level world, Direction forcedDirection, Queue<BlockPos> frontier,
+	protected void injectMoveBlock(Level world, @Nullable Direction forcedDirection, Queue<BlockPos> frontier,
 								   Set<BlockPos> visited, CallbackInfoReturnable<Boolean> cir) throws AssemblyException {
 		BlockPos pos = frontier.poll();
 
@@ -590,9 +593,7 @@ public class ContraptionMixin {
 					continue;
 				}
 
-				// 继续原方法的其余逻辑
-				if (state.getBlock() instanceof SimpleWaterloggedBlock
-                        && state.hasProperty(BlockStateProperties.WATERLOGGED)) {
+				if (state.getBlock() instanceof SimpleWaterloggedBlock && state.hasProperty(BlockStateProperties.WATERLOGGED)) {
 					FluidState fluidState = world.getFluidState(targetPos);
 					state = state.setValue(BlockStateProperties.WATERLOGGED, fluidState.getType() == Fluids.WATER);
 				}
@@ -651,7 +652,7 @@ public class ContraptionMixin {
 							}
 						}
 
-                        blockEntity.loadWithComponents(tag, world.registryAccess());
+						blockEntity.load(tag);
 					}
 				}
 

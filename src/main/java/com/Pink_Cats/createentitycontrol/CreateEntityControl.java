@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 public class createentitycontrol {
 
     // Define mod id in a common place for everything to reference
-    public static final String MODID = "createentitycontroller";
+    public static final String MODID = "createentitycontrol";
     // Directly reference a slf4j logger
     public static final Logger LOGGER = LogUtils.getLogger();
 

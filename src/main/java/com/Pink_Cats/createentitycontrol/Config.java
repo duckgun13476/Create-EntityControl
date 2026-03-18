@@ -1,4 +1,4 @@
-package com.Pink_Cats.createentitycontroller;
+package com.Pink_Cats.createentitycontrol;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;

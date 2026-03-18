@@ -1,4 +1,4 @@
-package com.Pink_Cats.createentitycontroller.addition;
+package com.Pink_Cats.createentitycontrol.addition;
 
 import com.simibubi.create.content.contraptions.StructureTransform;
 import net.minecraft.core.BlockPos;
