@@ -1,4 +1,4 @@
-package com.Pink_Cats.createentitycontroller.addition;
+package com.Pink_Cats.createentitycontrol.addition;
 
 public class EntityEnrollment {
 

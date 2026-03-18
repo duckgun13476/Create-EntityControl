@@ -29,7 +29,7 @@ idea {
 
 mixin {
     // add sourceSets.main, 'createaddition.refmap.json'
-    config 'createentitycontroller.mixins.json'
+    config 'createentitycontrol.mixins.json'
 
 
 }
@@ -259,7 +259,7 @@ jar {
 
     }
     manifest.attributes([
-            "MixinConfigs": "createentitycontroller.mixins.json",
+            "MixinConfigs": "createentitycontrol.mixins.json",
             "Git-Hash"    :  gitHash
     ])
 

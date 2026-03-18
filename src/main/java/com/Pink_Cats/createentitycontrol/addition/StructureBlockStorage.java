@@ -1,4 +1,4 @@
-package com.Pink_Cats.createentitycontroller.addition;
+package com.Pink_Cats.createentitycontrol.addition;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;

@@ -1,11 +1,12 @@
 {
   "required": true,
   "priority": 700,
-  "package": "com.Pink_Cats.createentitycontroller.mixin",
+  "package": "com.Pink_Cats.createentitycontrol.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "AssemblyExceptionMixin",
     "ContraptionMixin",
+    "ControlledContraptionEntityAccessor",
     "StructureCheckMixin"
   ],
   "minVersion": "0.8"

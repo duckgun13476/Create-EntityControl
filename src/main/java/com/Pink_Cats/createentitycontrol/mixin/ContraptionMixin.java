@@ -1,9 +1,9 @@
-package com.Pink_Cats.createentitycontroller.mixin;
+package com.Pink_Cats.createentitycontrol.mixin;
 
-import com.Pink_Cats.createentitycontroller.Config;
-import com.Pink_Cats.createentitycontroller.addition.EntityEnrollment;
-import com.Pink_Cats.createentitycontroller.addition.StructureBlockStorage;
-import com.Pink_Cats.createentitycontroller.addition.StructureFunc;
+import com.Pink_Cats.createentitycontrol.Config;
+import com.Pink_Cats.createentitycontrol.addition.EntityEnrollment;
+import com.Pink_Cats.createentitycontrol.addition.StructureBlockStorage;
+import com.Pink_Cats.createentitycontrol.addition.StructureFunc;
 import com.google.common.collect.Multimap;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.AllBlocks;
@@ -61,7 +61,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-import static com.Pink_Cats.createentitycontroller.addition.StructureBlockStorage.generateRandomUUID;
+import static com.Pink_Cats.createentitycontrol.addition.StructureBlockStorage.generateRandomUUID;
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isExtensionPole;
 import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isPistonHead;
 
@@ -146,12 +146,12 @@ public class ContraptionMixin {
 	@Unique
 	Map<String, Integer> blockCountMap_r = new HashMap<>();
 	@Unique
-	BlockPos createentitycontroller$minPos = new BlockPos(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+	BlockPos createentitycontrol$minPos = new BlockPos(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
 	@Unique
-	BlockPos createentitycontroller$maxPos = new BlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
+	BlockPos createentitycontrol$maxPos = new BlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 
 	@Unique
-	private static final Logger createentitycontroller$LOGGER = LogUtils.getLogger();
+	private static final Logger createentitycontrol$LOGGER = LogUtils.getLogger();
 
     /*@Shadow
     protected boolean moveBlock(Level world, @javax.annotation.Nullable Direction forcedDirection, Queue<BlockPos> frontier,
@@ -186,7 +186,7 @@ public class ContraptionMixin {
 		for (int limit = 100000; limit > 0; limit--) {
 			if (frontier.isEmpty()) {
 				if (Config.enableBlockEntityExperimentPara) {
-					int totalValue = createentitycontroller$getTotalStabilizeValue();
+					int totalValue = createentitycontrol$getTotalStabilizeValue();
 
 					int globalCount = 0;
 					for (Integer count : blockCountMap_r.values()) {
@@ -214,7 +214,7 @@ public class ContraptionMixin {
 
 
 	@Unique
-	private int createentitycontroller$getTotalStabilizeValue() {
+	private int createentitycontrol$getTotalStabilizeValue() {
 		int totalValue = 0;
 		int defaultValue = 100;
 		for (Map.Entry<String, Integer> entry : blockCountMap_r.entrySet()) {
@@ -431,7 +431,7 @@ public class ContraptionMixin {
 				if (currentCount > allowedCount) {
 					// 可以选择抛出异常
 					if (Config.debug_block_entity_problem) {
-                        createentitycontroller$LOGGER.info("{} count: {} allowed: {}", blockName, currentCount, allowedCount);
+                        createentitycontrol$LOGGER.info("{} count: {} allowed: {}", blockName, currentCount, allowedCount);
 					}
                     EntityEnrollment.setControlStatus(16);
 					throw AssemblyException.unmovableBlock(pos, state);
@@ -439,36 +439,36 @@ public class ContraptionMixin {
 			}
 
 
-			if (pos.getX() < createentitycontroller$minPos.getX()) {
-				createentitycontroller$minPos = new BlockPos(pos.getX(), createentitycontroller$minPos.getY(), createentitycontroller$minPos.getZ());
+			if (pos.getX() < createentitycontrol$minPos.getX()) {
+				createentitycontrol$minPos = new BlockPos(pos.getX(), createentitycontrol$minPos.getY(), createentitycontrol$minPos.getZ());
 			}
-			if (pos.getY() < createentitycontroller$minPos.getY()) {
-				createentitycontroller$minPos = new BlockPos(createentitycontroller$minPos.getX(), pos.getY(), createentitycontroller$minPos.getZ());
+			if (pos.getY() < createentitycontrol$minPos.getY()) {
+				createentitycontrol$minPos = new BlockPos(createentitycontrol$minPos.getX(), pos.getY(), createentitycontrol$minPos.getZ());
 			}
-			if (pos.getZ() < createentitycontroller$minPos.getZ()) {
-				createentitycontroller$minPos = new BlockPos(createentitycontroller$minPos.getX(), createentitycontroller$minPos.getY(), pos.getZ());
+			if (pos.getZ() < createentitycontrol$minPos.getZ()) {
+				createentitycontrol$minPos = new BlockPos(createentitycontrol$minPos.getX(), createentitycontrol$minPos.getY(), pos.getZ());
 			}
 			// 更新最大坐标
-			if (pos.getX() > createentitycontroller$maxPos.getX()) {
-				createentitycontroller$maxPos = new BlockPos(pos.getX(), createentitycontroller$maxPos.getY(), createentitycontroller$maxPos.getZ());
+			if (pos.getX() > createentitycontrol$maxPos.getX()) {
+				createentitycontrol$maxPos = new BlockPos(pos.getX(), createentitycontrol$maxPos.getY(), createentitycontrol$maxPos.getZ());
 			}
-			if (pos.getY() > createentitycontroller$maxPos.getY()) {
-				createentitycontroller$maxPos = new BlockPos(createentitycontroller$maxPos.getX(), pos.getY(), createentitycontroller$maxPos.getZ());
+			if (pos.getY() > createentitycontrol$maxPos.getY()) {
+				createentitycontrol$maxPos = new BlockPos(createentitycontrol$maxPos.getX(), pos.getY(), createentitycontrol$maxPos.getZ());
 			}
-			if (pos.getZ() > createentitycontroller$maxPos.getZ()) {
-				createentitycontroller$maxPos = new BlockPos(createentitycontroller$maxPos.getX(), createentitycontroller$maxPos.getY(), pos.getZ());
+			if (pos.getZ() > createentitycontrol$maxPos.getZ()) {
+				createentitycontrol$maxPos = new BlockPos(createentitycontrol$maxPos.getX(), createentitycontrol$maxPos.getY(), pos.getZ());
 			}
 
 			// System.out.println("maxPos: " + maxPos +", minPos: " + minPos);
-			if ((createentitycontroller$maxPos.getX() - createentitycontroller$minPos.getX()) > Config.blockEntityXZMaxLength) {
+			if ((createentitycontrol$maxPos.getX() - createentitycontrol$minPos.getX()) > Config.blockEntityXZMaxLength) {
                 EntityEnrollment.setControlStatus(32);
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
-			if ((createentitycontroller$maxPos.getY() - createentitycontroller$minPos.getY()) > Config.blockEntityYMaxLength) {
+			if ((createentitycontrol$maxPos.getY() - createentitycontrol$minPos.getY()) > Config.blockEntityYMaxLength) {
                 EntityEnrollment.setControlStatus(32);
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
-			if ((createentitycontroller$maxPos.getZ() - createentitycontroller$minPos.getZ()) > Config.blockEntityXZMaxLength) {
+			if ((createentitycontrol$maxPos.getZ() - createentitycontrol$minPos.getZ()) > Config.blockEntityXZMaxLength) {
                 EntityEnrollment.setControlStatus(32);
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
@@ -494,7 +494,7 @@ public class ContraptionMixin {
 
             if (StructureFunc.StructureMatch(blocks,transform)){
                 if (Config.debug_block_entity_problem) {
-                    createentitycontroller$LOGGER.warn("same structure jump control");
+                    createentitycontrol$LOGGER.warn("same structure jump control");
 
                 }
             }
@@ -517,7 +517,7 @@ public class ContraptionMixin {
 			}
 			else{
 				if (Config.debug_block_entity_problem) {
-					createentitycontroller$LOGGER.warn("entity has not ignore block：{}", blockString);
+					createentitycontrol$LOGGER.warn("entity has not ignore block：{}", blockString);
 
 				}
 			}
