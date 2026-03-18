@@ -14,5 +14,21 @@
   "command.createentitycontrol.blockify.success": "Contraption blockified successfully.",
   "command.createentitycontrol.blockify.cancel_missing": "No pending blockify confirmation to cancel.",
   "command.createentitycontrol.blockify.cancelled": "Cancelled pending contraption blockify.",
-  "command.createentitycontrol.blockify.details": "%1$s\nEntity ID: %2$s\nCoords: %3$s\nBinding: %4$s\nBinding Coords: %5$s"
+  "command.createentitycontrol.blockify.details": "%1$s\nEntity ID: %2$s\nCoords: %3$s\nBinding: %4$s\nBinding Coords: %5$s",
+  "message.createentitycontrol.cluster_blocked.nearby.title": "Create: Entity Control",
+  "message.createentitycontrol.cluster_blocked.nearby.actionbar": "CEC: Triggered rule: %1$s",
+  "message.createentitycontrol.cluster_blocked.nearby.reason": "Triggered rule: %1$s",
+  "message.createentitycontrol.cluster_blocked.nearby.location": "At: %1$s",
+  "message.createentitycontrol.cluster_blocked.global.title": "[CEC] Cluster Limit Triggered",
+  "message.createentitycontrol.cluster_blocked.global.reason": "Triggered rule: %1$s",
+  "message.createentitycontrol.cluster_blocked.global.location": "At: %1$s",
+  "message.createentitycontrol.cluster_blocked.global.players": "Nearest players: %1$s",
+  "message.createentitycontrol.cluster_blocked.global.players.none": "none",
+  "message.createentitycontrol.cluster_blocked.location": "[%1$s, %2$s, %3$s] | %4$s",
+  "message.createentitycontrol.cluster_blocked.reason.total_blocks": "total blocks %1$s > %2$s",
+  "message.createentitycontrol.cluster_blocked.reason.stability": "stability %1$s > %2$s",
+  "message.createentitycontrol.cluster_blocked.reason.block_limit": "%1$s count %2$s > %3$s",
+  "message.createentitycontrol.cluster_blocked.reason.span_x": "span X %1$s > %2$s",
+  "message.createentitycontrol.cluster_blocked.reason.span_y": "span Y %1$s > %2$s",
+  "message.createentitycontrol.cluster_blocked.reason.span_z": "span Z %1$s > %2$s"
 }

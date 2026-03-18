@@ -3,6 +3,7 @@ package com.Pink_Cats.createentitycontrol;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
+import net.minecraftforge.common.ForgeConfigSpec;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.config.ModConfigEvent;
@@ -56,6 +57,11 @@ public class Config {
                     .comment("Whether to log the block entity problem if it can't turned into block entities.")
                     .define("Log block entity problem", false);
 
+    private static final ForgeConfigSpec.BooleanValue DEBUG =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("Whether to log debug information for extra runtime control logic such as contraption clusters.")
+                    .define("debug", false);
+
 
     private static final ModConfigSpec.IntValue SQUEEZE_DESTROY_SPEED =
             BUILDER.comment("--------------------------------------------------------------------------")
@@ -63,6 +69,15 @@ public class Config {
                     .comment("Exp: obsidian is 40 and 400 in this case, dirt is 0.5 and 5 set in this case. ")
                     .comment("default value is suggested because dirt and sand will drop but stone will stay")
                     .defineInRange("10% of destroy speed", 14, 0, Integer.MAX_VALUE);
+
+
+    private static final ForgeConfigSpec.IntValue MECHANICAL_BEARING_GEAR_MAX_SPEED =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("Dedicated max speed for Mechanical Bearing rotation.")
+                    .comment("0 disables this cap. If Create provides 256 and you set 128, the bearing rotates at 128.")
+                    .comment("If you set a value higher than the original Create speed, the original speed is kept.")
+                    .defineInRange("mechanical bearing gear max speed", 128, 0, Integer.MAX_VALUE);
+
 
     private static final ModConfigSpec.IntValue BLOCK_ENTITY_MAX_XZ_LENGTH =
             BUILDER.comment("--------------------------------------------------------------------------")
@@ -153,6 +168,7 @@ public class Config {
     static final ModConfigSpec SPEC = BUILDER.build();
 
     public static boolean debug_block_entity_problem;
+    public static boolean debug;
     public static int blockEntityXZMaxLength;
     public static int block_entity_max_stabilize_count;
     public static boolean enableBlockEntityExperimentPara;
@@ -160,6 +176,7 @@ public class Config {
     public static int blockEntityYMaxLength;
     public static int keep_structure_refresh_time;
     public static float squeeze_destroy_speed;
+    public static int mechanical_bearing_gear_max_speed;
     public static Set<String> blocks_uncrushable; // 定义为 Set<String>
     public static Set<String> blocks_uncrushableIgnore;
     public static Set<String> blocks_unmoved; // 定义为 Set<String>
@@ -179,7 +196,9 @@ public class Config {
 
     private static void Load_cec_config() {
         debug_block_entity_problem = DEBUG_BLOCK_ENTITY_PROBLEM.get();
+        debug = DEBUG.get();
         squeeze_destroy_speed = SQUEEZE_DESTROY_SPEED.get().floatValue()/10;
+        mechanical_bearing_gear_max_speed = MECHANICAL_BEARING_GEAR_MAX_SPEED.get();
         blockEntityYMaxLength = BLOCK_ENTITY_MAX_Y_LENGTH.get();
         blockEntityXZMaxLength = BLOCK_ENTITY_MAX_XZ_LENGTH.get();
         block_entity_max_stabilize_count = BLOCK_ENTITY_MAX_STABILIZE_COUNT.get();

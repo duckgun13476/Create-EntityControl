@@ -32,20 +32,25 @@ public class createentitycontrol {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
-        // Some common setup code
-        LOGGER.info("Loading config");
+        if (Config.debug) {
+            LOGGER.info("Loading config");
+            LOGGER.info("DEBUG IS ENABLED");
+            LOGGER.info("squeeze limit count > {}", Config.squeeze_destroy_speed);
+            LOGGER.info("mechanical bearing gear max speed > {}", Config.mechanical_bearing_gear_max_speed);
+            LOGGER.info("block count limit > {}", Config.blocksLimitValues);
+        }
 
-        if (Config.debug_block_entity_problem) LOGGER.info("DEBUG BLOCK ENTITY_PROBLEM IS ENABLED");
-        LOGGER.info("squeeze limit count > {}" ,Config.squeeze_destroy_speed);
-        LOGGER.info("block count limit > {}", Config.blocksLimitValues);
-
-
+        if (Config.debug_block_entity_problem) {
+            LOGGER.info("DEBUG BLOCK ENTITY_PROBLEM IS ENABLED");
+        }
     }
 
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event)  {
+        if (Config.debug) {
         LOGGER.info("Create Overwrite Success!");
+        }
     }
 
     @SubscribeEvent
