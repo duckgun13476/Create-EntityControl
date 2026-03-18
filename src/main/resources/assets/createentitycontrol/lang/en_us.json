@@ -3,5 +3,16 @@
   "create.gui.assembly.exception.unmovableBlock_entity_control_unmovable_block": "Block can't move! \nLocated at: [%1$s,%2$s,%3$s]\nBlock: [%4$s]",
   "create.gui.assembly.exception.unmovableBlock_entity_control_structure_too_long": "Structure too long! \nLocated at: [%1$s,%2$s,%3$s]\nBlock: [%4$s]",
   "create.gui.assembly.exception.unmovableBlock_entity_control_limit_special_block": "Block reaches the count limit! \nLocated at: [%1$s,%2$s,%3$s]\nBlock: [%4$s]",
-  "create.gui.assembly.exception.structureTooLargeOrUnstable": "The structure has too many blocks or the structural stability coefficient exceeds the limit \nMaximum structure value: [%1$s]\nActual structure value: [%2$s]\nMaximum coefficient value: [%3$s]\nActual coefficient value: [%4$s]"
+  "create.gui.assembly.exception.structureTooLargeOrUnstable": "The structure has too many blocks or the structural stability coefficient exceeds the limit \nMaximum structure value: [%1$s]\nActual structure value: [%2$s]\nMaximum coefficient value: [%3$s]\nActual coefficient value: [%4$s]",
+  "command.createentitycontrol.player_only": "Only players can use this command.",
+  "command.createentitycontrol.blockify.no_target": "No Create contraption entity in your crosshair.",
+  "command.createentitycontrol.blockify.unsupported_train": "Train contraptions are not supported by /cec blockify. Use Create's train tools or remove the train first.",
+  "command.createentitycontrol.blockify.confirm_prompt": "Dangerous operation: run /cec blockify confirm within 30 seconds to continue, or /cec blockify cancel to abort.",
+  "command.createentitycontrol.blockify.no_pending": "No pending blockify confirmation. Use /cec blockify first.",
+  "command.createentitycontrol.blockify.expired": "Blockify confirmation expired. Use /cec blockify again.",
+  "command.createentitycontrol.blockify.missing": "The pending contraption entity no longer exists. Use /cec blockify again.",
+  "command.createentitycontrol.blockify.success": "Contraption blockified successfully.",
+  "command.createentitycontrol.blockify.cancel_missing": "No pending blockify confirmation to cancel.",
+  "command.createentitycontrol.blockify.cancelled": "Cancelled pending contraption blockify.",
+  "command.createentitycontrol.blockify.details": "%1$s\nEntity ID: %2$s\nCoords: %3$s\nBinding: %4$s\nBinding Coords: %5$s"
 }
