@@ -172,7 +172,6 @@ public class Config {
         return obj instanceof String itemName && BuiltInRegistries.BLOCK.containsKey(ResourceLocation.parse(itemName));
     }
 
-
     @SubscribeEvent
     static void onLoad(final ModConfigEvent event) {
         Load_cec_config();
@@ -198,5 +197,3 @@ public class Config {
         keep_structure_refresh_time = KEEP_STRUCTURE_REFRESH_TIME.get();
     }
 }
-
-

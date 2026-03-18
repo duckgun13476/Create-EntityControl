@@ -1,4 +1,4 @@
-package com.Pink_Cats.createentitycontroller;
+package com.Pink_Cats.createentitycontrol;
 
 import com.mojang.logging.LogUtils;
 import net.neoforged.api.distmarker.Dist;
@@ -15,8 +15,8 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
-@Mod(createentitycontroller.MODID)
-public class createentitycontroller {
+@Mod(createentitycontrol.MODID)
+public class createentitycontrol {
 
     // Define mod id in a common place for everything to reference
     public static final String MODID = "createentitycontroller";
@@ -24,7 +24,7 @@ public class createentitycontroller {
     public static final Logger LOGGER = LogUtils.getLogger();
 
 
-    public createentitycontroller(IEventBus modEventBus, ModContainer modContainer) {
+    public CreateEntityControl(IEventBus modEventBus, ModContainer modContainer) {
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
         NeoForge.EVENT_BUS.register(this);
@@ -39,12 +39,18 @@ public class createentitycontroller {
         LOGGER.info("squeeze limit count > {}" ,Config.squeeze_destroy_speed);
         LOGGER.info("block count limit > {}", Config.blocksLimitValues);
 
+
     }
 
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event)  {
         LOGGER.info("Create Overwrite Success!");
+    }
+
+    @SubscribeEvent
+    public void onRegisterCommands(RegisterCommandsEvent event) {
+        BlockifyContraptionCommand.register(event.getDispatcher());
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
