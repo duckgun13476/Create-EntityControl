@@ -1,4 +1,4 @@
-package com.Pink_Cats.createentitycontroller;
+package com.Pink_Cats.createentitycontrol;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
