@@ -62,19 +62,19 @@ public final class BlockifyContraptionCommand {
         try {
             player = source.getPlayerOrException();
         } catch (Exception exception) {
-            source.sendFailure(Component.literal("Only players can use this command."));
+            source.sendFailure(Component.translatable("command.createentitycontrol.player_only"));
             return 0;
         }
 
         Optional<AbstractContraptionEntity> target = findLookedContraption(player, BLOCKIFY_RANGE);
         if (target.isEmpty()) {
-            source.sendFailure(Component.literal("No Create contraption entity in your crosshair."));
+            source.sendFailure(Component.translatable("command.createentitycontrol.blockify.no_target"));
             return 0;
         }
 
         AbstractContraptionEntity contraptionEntity = target.get();
         if (isUnsupportedForBlockify(contraptionEntity)) {
-            source.sendFailure(Component.literal("Train contraptions are not supported by /cec blockify. Use Create's train tools or remove the train first."));
+            source.sendFailure(Component.translatable("command.createentitycontrol.blockify.unsupported_train"));
             return 0;
         }
 
@@ -82,7 +82,7 @@ public final class BlockifyContraptionCommand {
         PENDING_CONFIRMATIONS.put(player.getUUID(), new PendingBlockify(contraptionEntity.getUUID(), expiresAt));
 
         source.sendFailure(buildContraptionMessage(
-                "Dangerous operation: run /cec blockify confirm within 30 seconds to continue, or /cec blockify cancel to abort.",
+                "command.createentitycontrol.blockify.confirm_prompt",
                 contraptionEntity
         ));
         return 1;
@@ -93,38 +93,38 @@ public final class BlockifyContraptionCommand {
         try {
             player = source.getPlayerOrException();
         } catch (Exception exception) {
-            source.sendFailure(Component.literal("Only players can use this command."));
+            source.sendFailure(Component.translatable("command.createentitycontrol.player_only"));
             return 0;
         }
 
         PendingBlockify pending = PENDING_CONFIRMATIONS.get(player.getUUID());
         if (pending == null) {
-            source.sendFailure(Component.literal("No pending blockify confirmation. Use /cec blockify first."));
+            source.sendFailure(Component.translatable("command.createentitycontrol.blockify.no_pending"));
             return 0;
         }
 
         if (pending.expiresAt() < System.currentTimeMillis()) {
             PENDING_CONFIRMATIONS.remove(player.getUUID());
-            source.sendFailure(Component.literal("Blockify confirmation expired. Use /cec blockify again."));
+            source.sendFailure(Component.translatable("command.createentitycontrol.blockify.expired"));
             return 0;
         }
 
         Entity entity = ((ServerLevel) player.getCommandSenderWorld()).getEntity(pending.contraptionUuid());
         if (!(entity instanceof AbstractContraptionEntity contraptionEntity) || !entity.isAlive()) {
             PENDING_CONFIRMATIONS.remove(player.getUUID());
-            source.sendFailure(Component.literal("The pending contraption entity no longer exists. Use /cec blockify again."));
+            source.sendFailure(Component.translatable("command.createentitycontrol.blockify.missing"));
             return 0;
         }
 
         if (isUnsupportedForBlockify(contraptionEntity)) {
             PENDING_CONFIRMATIONS.remove(player.getUUID());
-            source.sendFailure(Component.literal("Train contraptions are not supported by /cec blockify."));
+            source.sendFailure(Component.translatable("command.createentitycontrol.blockify.unsupported_train"));
             return 0;
         }
 
         PENDING_CONFIRMATIONS.remove(player.getUUID());
         contraptionEntity.disassemble();
-        source.sendSuccess(buildContraptionMessage("Contraption blockified successfully.", contraptionEntity), true);
+        source.sendSuccess(buildContraptionMessage("command.createentitycontrol.blockify.success", contraptionEntity), true);
         return 1;
     }
 
@@ -133,16 +133,16 @@ public final class BlockifyContraptionCommand {
         try {
             player = source.getPlayerOrException();
         } catch (Exception exception) {
-            source.sendFailure(Component.literal("Only players can use this command."));
+            source.sendFailure(Component.translatable("command.createentitycontrol.player_only"));
             return 0;
         }
 
         if (PENDING_CONFIRMATIONS.remove(player.getUUID()) == null) {
-            source.sendFailure(Component.literal("No pending blockify confirmation to cancel."));
+            source.sendFailure(Component.translatable("command.createentitycontrol.blockify.cancel_missing"));
             return 0;
         }
 
-        source.sendSuccess(Component.literal("Cancelled pending contraption blockify."), false);
+        source.sendSuccess(Component.translatable("command.createentitycontrol.blockify.cancelled"), false);
         return 1;
     }
 
@@ -163,16 +163,17 @@ public final class BlockifyContraptionCommand {
         return contraptionEntity instanceof CarriageContraptionEntity;
     }
 
-    private static Component buildContraptionMessage(String prompt, AbstractContraptionEntity contraptionEntity) {
+    private static Component buildContraptionMessage(String promptKey, AbstractContraptionEntity contraptionEntity) {
         BlockPos entityPos = contraptionEntity.blockPosition();
         BindingTarget bindingTarget = resolveBindingTarget(contraptionEntity);
 
-        return Component.literal(
-                prompt + "\n" +
-                        "Entity ID: " + contraptionEntity.getId() + "\n" +
-                        "Coords: " + formatBlockPos(entityPos) + "\n"+
-                        "Binding: " + bindingTarget.name() + "\n" +
-                        "Binding Coords: " + bindingTarget.posText()
+        return Component.translatable(
+                "command.createentitycontrol.blockify.details",
+                Component.translatable(promptKey),
+                Integer.toString(contraptionEntity.getId()),
+                formatBlockPos(entityPos),
+                bindingTarget.name(),
+                bindingTarget.posText()
         );
     }
 
