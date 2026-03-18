@@ -1,8 +1,10 @@
 package com.Pink_Cats.createentitycontroller;
 
 import com.mojang.logging.LogUtils;
+import com.Pink_Cats.createentitycontroller.command.BlockifyContraptionCommand;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -15,8 +17,8 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/mods.toml file
-@Mod(createentitycontroller.MODID)
-public class createentitycontroller {
+@Mod(CreateEntityControl.MODID)
+public class CreateEntityControl {
 
     // Define mod id in a common place for everything to reference
     public static final String MODID = "createentitycontroller";
@@ -24,7 +26,7 @@ public class createentitycontroller {
     public static final Logger LOGGER = LogUtils.getLogger();
 
 
-    public createentitycontroller() {
+    public CreateEntityControl() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         // Register the commonSetup method for mod loading
         modEventBus.addListener(this::commonSetup);
@@ -50,6 +52,11 @@ public class createentitycontroller {
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
         LOGGER.info("Create Overwrite Success!");
+    }
+
+    @SubscribeEvent
+    public void onRegisterCommands(RegisterCommandsEvent event) {
+        BlockifyContraptionCommand.register(event.getDispatcher());
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
