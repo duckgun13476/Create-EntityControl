@@ -1,4 +1,6 @@
-
+## 0.3.8.2
+1. New command for fix Create BlockEntity can't blockify (Not support train because this bug won't happen in train only in other moving structures like bearing). (type /cec for more)
+2. Try to fix a Create entity problem.
 
 ## 0.2.8.2
 1. Add unmovable items to avoid duplicating item in an old Create version.
