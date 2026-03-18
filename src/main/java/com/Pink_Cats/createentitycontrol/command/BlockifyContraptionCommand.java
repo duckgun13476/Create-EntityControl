@@ -7,6 +7,7 @@ import com.simibubi.create.content.contraptions.ControlledContraptionEntity;
 import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
 import com.simibubi.create.content.contraptions.gantry.GantryContraption;
 import com.simibubi.create.content.contraptions.gantry.GantryContraptionEntity;
+import com.simibubi.create.content.trains.entity.CarriageContraptionEntity;
 import com.Pink_Cats.createentitycontrol.mixin.ControlledContraptionEntityAccessor;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -72,6 +73,11 @@ public final class BlockifyContraptionCommand {
         }
 
         AbstractContraptionEntity contraptionEntity = target.get();
+        if (isUnsupportedForBlockify(contraptionEntity)) {
+            source.sendFailure(Component.literal("Train contraptions are not supported by /cec blockify. Use Create's train tools or remove the train first."));
+            return 0;
+        }
+
         long expiresAt = System.currentTimeMillis() + CONFIRM_TIMEOUT_MS;
         PENDING_CONFIRMATIONS.put(player.getUUID(), new PendingBlockify(contraptionEntity.getUUID(), expiresAt));
 
@@ -110,6 +116,12 @@ public final class BlockifyContraptionCommand {
             return 0;
         }
 
+        if (isUnsupportedForBlockify(contraptionEntity)) {
+            PENDING_CONFIRMATIONS.remove(player.getUUID());
+            source.sendFailure(Component.literal("Train contraptions are not supported by /cec blockify."));
+            return 0;
+        }
+
         PENDING_CONFIRMATIONS.remove(player.getUUID());
         contraptionEntity.disassemble();
         source.sendSuccess(buildContraptionMessage("Contraption blockified successfully.", contraptionEntity), true);
@@ -145,6 +157,10 @@ public final class BlockifyContraptionCommand {
                 .stream()
                 .filter(entity -> entity.getBoundingBox().inflate(0.5D).clip(start, end).isPresent())
                 .min(Comparator.comparingDouble(entity -> entity.distanceToSqr(start.x, start.y, start.z)));
+    }
+
+    private static boolean isUnsupportedForBlockify(AbstractContraptionEntity contraptionEntity) {
+        return contraptionEntity instanceof CarriageContraptionEntity;
     }
 
     private static Component buildContraptionMessage(String prompt, AbstractContraptionEntity contraptionEntity) {
