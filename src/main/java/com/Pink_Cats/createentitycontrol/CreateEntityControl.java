@@ -1,7 +1,7 @@
-package com.Pink_Cats.createentitycontroller;
+package com.Pink_Cats.createentitycontrol;
 
 import com.mojang.logging.LogUtils;
-import com.Pink_Cats.createentitycontroller.command.BlockifyContraptionCommand;
+import com.Pink_Cats.createentitycontrol.command.BlockifyContraptionCommand;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 public class CreateEntityControl {
 
     // Define mod id in a common place for everything to reference
-    public static final String MODID = "createentitycontroller";
+    public static final String MODID = "createentitycontrol";
     // Directly reference a slf4j logger
     public static final Logger LOGGER = LogUtils.getLogger();
 
