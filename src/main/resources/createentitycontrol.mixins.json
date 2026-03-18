@@ -4,9 +4,11 @@
   "package": "com.Pink_Cats.createentitycontrol.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "AbstractContraptionEntityMixin",
     "AssemblyExceptionMixin",
     "ContraptionMixin",
     "ControlledContraptionEntityAccessor",
+    "MechanicalBearingBlockEntityMixin",
     "StructureCheckMixin"
   ],
   "minVersion": "0.8"

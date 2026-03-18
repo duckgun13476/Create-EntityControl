@@ -2,6 +2,7 @@ package com.Pink_Cats.createentitycontrol;
 
 import com.mojang.logging.LogUtils;
 import com.Pink_Cats.createentitycontrol.command.BlockifyContraptionCommand;
+import com.Pink_Cats.createentitycontrol.network.CreateEntityControlNetwork;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -28,6 +29,7 @@ public class CreateEntityControl {
 
     public CreateEntityControl() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        CreateEntityControlNetwork.register();
         // Register the commonSetup method for mod loading
         modEventBus.addListener(this::commonSetup);
         // Register ourselves for server and other game events we are interested in
@@ -37,21 +39,26 @@ public class CreateEntityControl {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
-        // Some common setup code
-        LOGGER.info("Loading config");
+        if (Config.debug) {
+            LOGGER.info("Loading config");
+            LOGGER.info("DEBUG IS ENABLED");
+            LOGGER.info("squeeze limit count > {}", Config.squeeze_destroy_speed);
+            LOGGER.info("mechanical bearing gear max speed > {}", Config.mechanical_bearing_gear_max_speed);
+            LOGGER.info("block count limit > {}", Config.blocksLimitValues);
+        }
 
-        if (Config.debug_block_entity_problem) LOGGER.info("DEBUG BLOCK ENTITY_PROBLEM IS ENABLED");
-        LOGGER.info("squeeze limit count > {}" ,Config.squeeze_destroy_speed);
-        LOGGER.info("block count limit > {}", Config.blocksLimitValues);
-
-
+        if (Config.debug_block_entity_problem) {
+            LOGGER.info("DEBUG BLOCK ENTITY_PROBLEM IS ENABLED");
+        }
     }
 
 
     // You can use SubscribeEvent and let the Event Bus discover methods to call
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
-        LOGGER.info("Create Overwrite Success!");
+        if (Config.debug) {
+            LOGGER.info("Create Overwrite Success!");
+        }
     }
 
     @SubscribeEvent
