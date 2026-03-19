@@ -1,6 +1,9 @@
-## 0.3.8.2
+## 0.3.8.3
 1. New command for fix Create BlockEntity can't blockify (Not support train because this bug won't happen in train only in other moving structures like bearing). (type /cec for more)
 2. Try to fix a Create entity problem.
+3. Add spatial cluster validation for nearby contraptions to stop multi-entity bypasses of special block count limits.
+4. Add a dedicated max speed cap for `MechanicalBearingBlockEntity` without increasing Create's original speed limit.
+5. Added cluster warning sync with nearby actionbar hints, global chat broadcast, and a persistent crosshair overlay.
 
 ## 0.2.8.2
 1. Add unmovable items to avoid duplicating item in an old Create version.

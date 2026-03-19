@@ -1,53 +1,49 @@
 package com.Pink_Cats.createentitycontrol.network;
 
+import com.Pink_Cats.createentitycontrol.CreateEntityControl;
 import com.Pink_Cats.createentitycontrol.client.ClusterBlockedOverlay;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
-public class ClusterBlockedSyncPacket {
+public record ClusterBlockedSyncPacket(
+        List<Integer> entityIds,
+        Component reason,
+        Component location,
+        int durationTicks
+) implements CustomPacketPayload {
 
-    private final List<Integer> entityIds;
-    private final Component reason;
-    private final Component location;
-    private final int durationTicks;
+    public static final Type<ClusterBlockedSyncPacket> TYPE =
+            new Type<>(ResourceLocation.fromNamespaceAndPath(CreateEntityControl.MODID, "cluster_blocked_sync"));
 
-    public ClusterBlockedSyncPacket(List<Integer> entityIds, Component reason, Component location, int durationTicks) {
-        this.entityIds = entityIds;
-        this.reason = reason;
-        this.location = location;
-        this.durationTicks = durationTicks;
+    public static final StreamCodec<RegistryFriendlyByteBuf, ClusterBlockedSyncPacket> STREAM_CODEC =
+            StreamCodec.composite(
+                    ByteBufCodecs.collection(ArrayList::new, ByteBufCodecs.VAR_INT),
+                    ClusterBlockedSyncPacket::entityIds,
+                    ComponentSerialization.TRUSTED_STREAM_CODEC,
+                    ClusterBlockedSyncPacket::reason,
+                    ComponentSerialization.TRUSTED_STREAM_CODEC,
+                    ClusterBlockedSyncPacket::location,
+                    ByteBufCodecs.VAR_INT,
+                    ClusterBlockedSyncPacket::durationTicks,
+                    ClusterBlockedSyncPacket::new
+            );
+
+    @Override
+    public Type<ClusterBlockedSyncPacket> type() {
+        return TYPE;
     }
 
-    public static void encode(ClusterBlockedSyncPacket packet, FriendlyByteBuf buf) {
-        buf.writeVarInt(packet.entityIds.size());
-        for (Integer entityId : packet.entityIds) {
-            buf.writeVarInt(entityId);
-        }
-        buf.writeComponent(packet.reason);
-        buf.writeComponent(packet.location);
-        buf.writeVarInt(packet.durationTicks);
-    }
-
-    public static ClusterBlockedSyncPacket decode(FriendlyByteBuf buf) {
-        int size = buf.readVarInt();
-        List<Integer> entityIds = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            entityIds.add(buf.readVarInt());
-        }
-        Component reason = buf.readComponent();
-        Component location = buf.readComponent();
-        int durationTicks = buf.readVarInt();
-        return new ClusterBlockedSyncPacket(entityIds, reason, location, durationTicks);
-    }
-
-    public static void handle(ClusterBlockedSyncPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
-        context.enqueueWork(() -> ClusterBlockedOverlay.remember(packet.entityIds, packet.reason, packet.location, packet.durationTicks));
-        context.setPacketHandled(true);
+    public static void handle(ClusterBlockedSyncPacket packet, IPayloadContext context) {
+        context.enqueueWork(() ->
+                ClusterBlockedOverlay.remember(packet.entityIds(), packet.reason(), packet.location(), packet.durationTicks()));
     }
 }

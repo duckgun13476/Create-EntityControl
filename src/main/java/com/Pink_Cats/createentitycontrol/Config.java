@@ -2,19 +2,16 @@ package com.Pink_Cats.createentitycontrol;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
-import net.minecraftforge.common.ForgeConfigSpec;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 // An example config class. This is not required, but it's a good idea to have one to keep your config organized.
 // Demonstrates how to use Neo's config APIs
-@EventBusSubscriber(modid = createentitycontroller.MODID, bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = CreateEntityControl.MODID)
 public class Config {
 
 
@@ -57,7 +54,7 @@ public class Config {
                     .comment("Whether to log the block entity problem if it can't turned into block entities.")
                     .define("Log block entity problem", false);
 
-    private static final ForgeConfigSpec.BooleanValue DEBUG =
+    private static final ModConfigSpec.BooleanValue DEBUG =
             BUILDER.comment("--------------------------------------------------------------------------")
                     .comment("Whether to log debug information for extra runtime control logic such as contraption clusters.")
                     .define("debug", false);
@@ -71,7 +68,7 @@ public class Config {
                     .defineInRange("10% of destroy speed", 14, 0, Integer.MAX_VALUE);
 
 
-    private static final ForgeConfigSpec.IntValue MECHANICAL_BEARING_GEAR_MAX_SPEED =
+    private static final ModConfigSpec.IntValue MECHANICAL_BEARING_GEAR_MAX_SPEED =
             BUILDER.comment("--------------------------------------------------------------------------")
                     .comment("Dedicated max speed for Mechanical Bearing rotation.")
                     .comment("0 disables this cap. If Create provides 256 and you set 128, the bearing rotates at 128.")
@@ -89,28 +86,45 @@ public class Config {
                     .comment("The longest Y  distance of block entity | If set 20: 42*14*42 is allowed but 42*24*42 is forbidden.")
                     .defineInRange("block entity max length Y", 60, 3, 500);
 
-    private static final ForgeConfigSpec.DoubleValue CONTRAPTION_CLUSTER_SCAN_RADIUS =
+    private static final ModConfigSpec.DoubleValue CONTRAPTION_CLUSTER_SCAN_RADIUS =
             BUILDER.comment("--------------------------------------------------------------------------")
                     .comment("The scan radius used by contraption cluster detection.")
                     .comment("Only contraptions within this radius will be merged into one cluster for cluster-level limit checks.")
                     .defineInRange("contraption cluster scan radius", 96.0D, 1.0D, 512.0D);
 
-    private static final ForgeConfigSpec.DoubleValue CONTRAPTION_CLUSTER_LOCAL_NOTIFY_RADIUS =
+    private static final ModConfigSpec.DoubleValue CONTRAPTION_CLUSTER_LOCAL_NOTIFY_RADIUS =
             BUILDER.comment("--------------------------------------------------------------------------")
                     .comment("The local notify radius for nearby actionbar hints and overlay sync.")
                     .defineInRange("contraption cluster local notify radius", 96.0D, 1.0D, 512.0D);
 
-    private static final ForgeConfigSpec.DoubleValue CONTRAPTION_CLUSTER_GLOBAL_NEARBY_PLAYERS_RADIUS =
+    private static final ModConfigSpec.DoubleValue CONTRAPTION_CLUSTER_GLOBAL_NEARBY_PLAYERS_RADIUS =
             BUILDER.comment("--------------------------------------------------------------------------")
                     .comment("The search radius used to list nearby players inside the global cluster-blocked message.")
                     .comment("This does not change who receives the global message.")
                     .defineInRange("contraption cluster global nearby players radius", 96.0D, 1.0D, 512.0D);
 
-    private static final ForgeConfigSpec.DoubleValue CONTRAPTION_CLUSTER_BLOCK_LIMIT_MULTIPLIER =
+    private static final ModConfigSpec.DoubleValue CONTRAPTION_CLUSTER_BLOCK_LIMIT_MULTIPLIER =
             BUILDER.comment("--------------------------------------------------------------------------")
                     .comment("Multiplier applied to cluster-level aggregated block limits from blocks_limit.")
                     .comment("Single-contraption limits stay unchanged; only the cluster total uses this multiplier.")
                     .defineInRange("contraption cluster block limit multiplier", 1.5D, 0.0D, 64.0D);
+
+    private static final ModConfigSpec.BooleanValue CONTRAPTION_CLUSTER_CHAIN_DETECTION =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("Enable chained cluster detection for nearby multiple contraptions.")
+                    .comment("This can detect multi-entity clusters, but it costs some extra performance.")
+                    .define("contraption cluster chain detection", true);
+
+    private static final ModConfigSpec.IntValue CONTRAPTION_CLUSTER_SCAN_INTERVAL_SECONDS =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("How often contraption cluster validation runs, in seconds.")
+                    .comment("This controls the periodic cluster scan cooldown added for performance control.")
+                    .defineInRange("contraption cluster scan interval seconds", 1, 1, 10);
+
+    private static final ModConfigSpec.IntValue CONTRAPTION_CLUSTER_GLOBAL_NOTIFY_COOLDOWN_MINUTES =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("Cooldown for global cluster-blocked chat notifications, in minutes.")
+                    .defineInRange("contraption cluster global notify cooldown minutes", 5, 1, 60);
 
 
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLACKS_STRING =
@@ -204,6 +218,9 @@ public class Config {
     public static double contraption_cluster_local_notify_radius;
     public static double contraption_cluster_global_nearby_players_radius;
     public static double contraption_cluster_block_limit_multiplier;
+    public static boolean contraption_cluster_chain_detection;
+    public static int contraption_cluster_scan_interval_seconds;
+    public static int contraption_cluster_global_notify_cooldown_minutes;
     public static Set<String> blocks_uncrushable; // 定义为 Set<String>
     public static Set<String> blocks_uncrushableIgnore;
     public static Set<String> blocks_unmoved; // 定义为 Set<String>
@@ -232,6 +249,9 @@ public class Config {
         contraption_cluster_local_notify_radius = CONTRAPTION_CLUSTER_LOCAL_NOTIFY_RADIUS.get();
         contraption_cluster_global_nearby_players_radius = CONTRAPTION_CLUSTER_GLOBAL_NEARBY_PLAYERS_RADIUS.get();
         contraption_cluster_block_limit_multiplier = CONTRAPTION_CLUSTER_BLOCK_LIMIT_MULTIPLIER.get();
+        contraption_cluster_chain_detection = CONTRAPTION_CLUSTER_CHAIN_DETECTION.get();
+        contraption_cluster_scan_interval_seconds = CONTRAPTION_CLUSTER_SCAN_INTERVAL_SECONDS.get();
+        contraption_cluster_global_notify_cooldown_minutes = CONTRAPTION_CLUSTER_GLOBAL_NOTIFY_COOLDOWN_MINUTES.get();
         block_entity_max_stabilize_count = BLOCK_ENTITY_MAX_STABILIZE_COUNT.get();
         enableBlockEntityExperimentPara = ENABLE_BLOCK_EXPERIMENT_PARA.get();
         blocksLimitValues = new ArrayList<>();

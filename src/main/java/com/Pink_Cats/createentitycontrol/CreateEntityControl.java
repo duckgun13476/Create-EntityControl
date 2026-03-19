@@ -1,5 +1,7 @@
 package com.Pink_Cats.createentitycontrol;
 
+import com.Pink_Cats.createentitycontrol.command.BlockifyContraptionCommand;
+import com.Pink_Cats.createentitycontrol.network.CreateEntityControlNetwork;
 import com.mojang.logging.LogUtils;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
@@ -11,12 +13,13 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
-@Mod(createentitycontrol.MODID)
-public class createentitycontrol {
+@Mod(CreateEntityControl.MODID)
+public class CreateEntityControl {
 
     // Define mod id in a common place for everything to reference
     public static final String MODID = "createentitycontrol";
@@ -27,6 +30,7 @@ public class createentitycontrol {
     public CreateEntityControl(IEventBus modEventBus, ModContainer modContainer) {
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
+        modEventBus.addListener(CreateEntityControlNetwork::register);
         NeoForge.EVENT_BUS.register(this);
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }

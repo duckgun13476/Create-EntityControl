@@ -10,16 +10,16 @@ import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Mod.EventBusSubscriber(modid = CreateEntityControl.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
+@EventBusSubscriber(modid = CreateEntityControl.MODID, value = Dist.CLIENT)
 public class ClusterBlockedOverlay {
 
     private static final int HINT_GOLD = 0xE7CD73;
@@ -40,8 +40,8 @@ public class ClusterBlockedOverlay {
     }
 
     @SubscribeEvent
-    public static void onRenderOverlay(RenderGuiOverlayEvent.Post event) {
-        if (!"hotbar".equals(event.getOverlay().id().getPath())) {
+    public static void onRenderOverlay(RenderGuiLayerEvent.Post event) {
+        if (!"hotbar".equals(event.getName().getPath())) {
             return;
         }
 
@@ -65,11 +65,11 @@ public class ClusterBlockedOverlay {
         MutableComponent line1 = gold(Component.translatable("message.createentitycontrol.cluster_blocked.nearby.reason", entry.reason));
         MutableComponent line2 = gold(Component.translatable("message.createentitycontrol.cluster_blocked.nearby.location", entry.location));
 
-        int centerX = event.getWindow().getGuiScaledWidth() / 2;
-        int baseY = event.getWindow().getGuiScaledHeight() / 2 + 18;
+        int centerX = mc.getWindow().getGuiScaledWidth() / 2;
+        int baseY = mc.getWindow().getGuiScaledHeight() / 2 + 18;
 
-        font.drawShadow(event.getPoseStack(), line1, centerX - font.width(line1) / 2.0F, baseY, HINT_GOLD);
-        font.drawShadow(event.getPoseStack(), line2, centerX - font.width(line2) / 2.0F, baseY + 11, HINT_GOLD);
+        event.getGuiGraphics().drawString(font, line1, centerX - font.width(line1) / 2, baseY, HINT_GOLD, true);
+        event.getGuiGraphics().drawString(font, line2, centerX - font.width(line2) / 2, baseY + 11, HINT_GOLD, true);
     }
 
     private static void pruneExpired(long gameTime) {

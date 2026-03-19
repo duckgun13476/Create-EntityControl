@@ -1,9 +1,9 @@
-package com.Pink_Cats.createentitycontroller.mixin;
+package com.Pink_Cats.createentitycontrol.mixin;
 
-import com.Pink_Cats.createentitycontroller.Config;
-import com.Pink_Cats.createentitycontroller.addition.EntityEnrollment;
-import com.Pink_Cats.createentitycontroller.addition.StructureBlockStorage;
-import com.Pink_Cats.createentitycontroller.addition.StructureFunc;
+import com.Pink_Cats.createentitycontrol.Config;
+import com.Pink_Cats.createentitycontrol.addition.EntityEnrollment;
+import com.Pink_Cats.createentitycontrol.addition.StructureBlockStorage;
+import com.Pink_Cats.createentitycontrol.addition.StructureFunc;
 import com.google.common.collect.Multimap;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.AllBlocks;
@@ -23,7 +23,7 @@ import com.simibubi.create.content.kinetics.simpleRelays.ShaftBlock;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
 import com.simibubi.create.foundation.blockEntity.IMultiBlockEntityContainer;
 import com.simibubi.create.infrastructure.config.AllConfigs;
-import info.journeymap.shaded.org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 import net.createmod.catnip.data.Iterate;
 import net.createmod.catnip.data.UniqueLinkedList;
 import net.createmod.catnip.nbt.NBTProcessors;
@@ -652,7 +652,7 @@ public class ContraptionMixin {
 							}
 						}
 
-						blockEntity.load(tag);
+						blockEntity.loadWithComponents(tag, world.registryAccess());
 					}
 				}
 

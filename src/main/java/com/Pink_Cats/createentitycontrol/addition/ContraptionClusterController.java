@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.Entity;
@@ -25,46 +26,37 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.slf4j.Logger;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public final class ContraptionClusterController {
 
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final int HINT_GOLD = 0xE7CD73;
     private static final long SNAPSHOT_REFRESH_INTERVAL = 20L;
-    private static final long VALIDATION_INTERVAL = 10L;
     private static final long BLOCKED_CLUSTER_DURATION = 10L;
+    private static final long CLEANUP_INTERVAL = 20L;
     private static final long LOCAL_NOTIFY_COOLDOWN = 100L;
-    private static final long GLOBAL_NOTIFY_COOLDOWN = 60L * 20L;
     private static final int GLOBAL_NOTIFY_PLAYER_READY_TICKS = 40;
     private static final int OVERLAY_SYNC_DURATION = 60;
 
     private static final Map<UUID, ContraptionSnapshot> SNAPSHOTS = new HashMap<>();
     private static final Map<UUID, Long> BLOCKED_UNTIL = new HashMap<>();
+    private static final Map<UUID, Long> NEXT_VALIDATION_TICK = new HashMap<>();
     private static final Map<String, Long> LOCAL_NOTIFY_UNTIL = new HashMap<>();
     private static final Map<String, Long> GLOBAL_NOTIFY_UNTIL = new HashMap<>();
+    private static long nextCleanupTick = Long.MIN_VALUE;
 
     private ContraptionClusterController() {}
 
     public static void tick(AbstractContraptionEntity entity) {
-        if (entity == null || entity.level.isClientSide || !entity.isAlive() || isExcluded(entity)) {
+        if (entity == null || entity.level().isClientSide || !entity.isAlive() || isExcluded(entity)) {
             return;
         }
 
-        long gameTime = entity.level.getGameTime();
+        long gameTime = entity.level().getGameTime();
         cleanup(gameTime);
 
         Long blockedUntil = BLOCKED_UNTIL.get(entity.getUUID());
@@ -73,11 +65,13 @@ public final class ContraptionClusterController {
             return;
         }
 
-        if (gameTime % VALIDATION_INTERVAL != Math.floorMod(entity.getId(), VALIDATION_INTERVAL)) {
+        Long nextValidationTick = NEXT_VALIDATION_TICK.get(entity.getUUID());
+        if (nextValidationTick != null && nextValidationTick > gameTime) {
             return;
         }
 
         Set<AbstractContraptionEntity> cluster = collectCluster(entity);
+        markValidated(cluster, gameTime + getValidationIntervalTicks());
         if (cluster.size() <= 1) {
             return;
         }
@@ -116,6 +110,7 @@ public final class ContraptionClusterController {
         }
         SNAPSHOTS.remove(entity.getUUID());
         BLOCKED_UNTIL.remove(entity.getUUID());
+        NEXT_VALIDATION_TICK.remove(entity.getUUID());
     }
 
     private static boolean isExcluded(AbstractContraptionEntity entity) {
@@ -123,14 +118,38 @@ public final class ContraptionClusterController {
     }
 
     private static void cleanup(long gameTime) {
+        if (gameTime < nextCleanupTick) {
+            return;
+        }
+        nextCleanupTick = gameTime + CLEANUP_INTERVAL;
         BLOCKED_UNTIL.entrySet().removeIf(entry -> entry.getValue() < gameTime);
+        NEXT_VALIDATION_TICK.entrySet().removeIf(entry -> entry.getValue() < gameTime);
         SNAPSHOTS.entrySet().removeIf(entry -> entry.getValue().expiresAtTick < gameTime);
         LOCAL_NOTIFY_UNTIL.entrySet().removeIf(entry -> entry.getValue() < gameTime);
         GLOBAL_NOTIFY_UNTIL.entrySet().removeIf(entry -> entry.getValue() < gameTime);
     }
 
+    private static void markValidated(Set<AbstractContraptionEntity> cluster, long nextAllowedTick) {
+        for (AbstractContraptionEntity member : cluster) {
+            NEXT_VALIDATION_TICK.put(member.getUUID(), nextAllowedTick);
+        }
+    }
+
+    private static long getValidationIntervalTicks() {
+        return Math.max(1L, Config.contraption_cluster_scan_interval_seconds) * 20L;
+    }
+
+    private static long getGlobalNotifyCooldownTicks() {
+        return Math.max(1L, Config.contraption_cluster_global_notify_cooldown_minutes) * 60L * 20L;
+    }
+
     private static Set<AbstractContraptionEntity> collectCluster(AbstractContraptionEntity root) {
         Set<AbstractContraptionEntity> cluster = new HashSet<>();
+        if (!Config.contraption_cluster_chain_detection) {
+            cluster.add(root);
+            return cluster;
+        }
+
         Deque<AbstractContraptionEntity> queue = new ArrayDeque<>();
         queue.add(root);
 
@@ -141,15 +160,13 @@ public final class ContraptionClusterController {
             }
 
             AABB searchBox = current.getBoundingBox().inflate(Config.contraption_cluster_scan_radius);
-            List<AbstractContraptionEntity> nearby = current.level.getEntitiesOfClass(
+            List<AbstractContraptionEntity> nearby = current.level().getEntitiesOfClass(
                     AbstractContraptionEntity.class,
                     searchBox,
                     other -> other != current && other.isAlive() && !isExcluded(other)
             );
 
-            for (AbstractContraptionEntity nearbyEntity : nearby) {
-                queue.add(nearbyEntity);
-            }
+            queue.addAll(nearby);
         }
 
         return cluster;
@@ -339,7 +356,7 @@ public final class ContraptionClusterController {
             ));
 
             AABB notifyBox = new AABB(center, center).inflate(Config.contraption_cluster_local_notify_radius);
-            for (ServerPlayer player : sample.level.getEntitiesOfClass(ServerPlayer.class, notifyBox, ServerPlayer::isAlive)) {
+            for (ServerPlayer player : sample.level().getEntitiesOfClass(ServerPlayer.class, notifyBox, ServerPlayer::isAlive)) {
                 if (isLookingAtCluster(player, cluster)) {
                     continue;
                 }
@@ -349,7 +366,7 @@ public final class ContraptionClusterController {
 
         syncOverlay(cluster, violation, location, sample);
 
-        MinecraftServer server = sample.level.getServer();
+        MinecraftServer server = sample.level().getServer();
         if (server == null) {
             return;
         }
@@ -368,7 +385,8 @@ public final class ContraptionClusterController {
 
         long globalNotifyUntil = GLOBAL_NOTIFY_UNTIL.getOrDefault(clusterKey, Long.MIN_VALUE);
         if (globalNotifyUntil < gameTime) {
-            GLOBAL_NOTIFY_UNTIL.put(clusterKey, gameTime + GLOBAL_NOTIFY_COOLDOWN);
+            long nextAllowedTick = gameTime + getGlobalNotifyCooldownTicks();
+            GLOBAL_NOTIFY_UNTIL.put(clusterKey, nextAllowedTick);
             Component nearbyPlayers = buildNearbyPlayersComponent(stats, sample);
             List<Component> globalLines = buildGlobalNotificationLines(violation, location, nearbyPlayers);
             for (ServerPlayer player : readyPlayers) {
@@ -385,20 +403,19 @@ public final class ContraptionClusterController {
                 }
             }
             if (Config.debug) {
-                LOGGER.info("cluster-global-notify sent clusterKey={} nextAllowedTick={}", clusterKey, gameTime + GLOBAL_NOTIFY_COOLDOWN);
+                LOGGER.info("cluster-global-notify sent clusterKey={} nextAllowedTick={}", clusterKey, nextAllowedTick);
             }
         }
     }
 
     private static List<Component> buildGlobalNotificationLines(ClusterLimitViolation violation, Component location, Component nearbyPlayers) {
-        MutableComponent title = gold(Component.translatable("message.createentitycontrol.cluster_blocked.global.title"));
-        MutableComponent reason = gold(Component.translatable(
-                "message.createentitycontrol.cluster_blocked.global.reason",
+        MutableComponent summary = gold(Component.translatable(
+                "message.createentitycontrol.cluster_blocked.global.summary",
                 Component.translatable(violation.translationKey, violation.arguments)
         ));
         MutableComponent locationLine = gold(Component.translatable("message.createentitycontrol.cluster_blocked.global.location", location));
         MutableComponent playersLine = gold(Component.translatable("message.createentitycontrol.cluster_blocked.global.players", nearbyPlayers));
-        return List.of(title, reason, locationLine, playersLine);
+        return List.of(summary, locationLine, playersLine);
     }
 
     private static void syncOverlay(Set<AbstractContraptionEntity> cluster, ClusterLimitViolation violation, Component location, AbstractContraptionEntity sample) {
@@ -416,8 +433,8 @@ public final class ContraptionClusterController {
                 OVERLAY_SYNC_DURATION
         );
 
-        for (ServerPlayer player : sample.level.getEntitiesOfClass(ServerPlayer.class, notifyBox, ServerPlayer::isAlive)) {
-            CreateEntityControlNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
+        for (ServerPlayer player : sample.level().getEntitiesOfClass(ServerPlayer.class, notifyBox, ServerPlayer::isAlive)) {
+            PacketDistributor.sendToPlayer(player, packet);
         }
     }
 
@@ -458,7 +475,7 @@ public final class ContraptionClusterController {
     }
 
     private static String extractBlockName(StructureTemplate.StructureBlockInfo blockInfo) {
-        return blockInfo.state.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
+        return blockInfo.state().getBlock().toString().replaceAll("Block\\{(.*?)}", "$1");
     }
 
     private static Component translateBlockName(String blockName) {
@@ -467,7 +484,7 @@ public final class ContraptionClusterController {
             return Component.literal(blockName);
         }
 
-        Block block = ForgeRegistries.BLOCKS.getValue(id);
+        Block block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
         if (block == null) {
             return Component.literal(blockName);
         }
@@ -482,7 +499,7 @@ public final class ContraptionClusterController {
                 (int) Math.floor(center.y),
                 (int) Math.floor(center.z)
         );
-        String dimension = sample.level.dimension().location().toString();
+        String dimension = sample.level().dimension().location().toString();
         return Component.translatable(
                 "message.createentitycontrol.cluster_blocked.location",
                 pos.getX(),
@@ -522,12 +539,12 @@ public final class ContraptionClusterController {
     private static Component buildNearbyPlayersComponent(ClusterStats stats, AbstractContraptionEntity sample) {
         Vec3 center = stats.center();
         AABB searchBox = new AABB(center, center).inflate(Config.contraption_cluster_global_nearby_players_radius);
-        List<ServerPlayer> players = sample.level.getEntitiesOfClass(ServerPlayer.class, searchBox, ServerPlayer::isAlive);
+        List<ServerPlayer> players = sample.level().getEntitiesOfClass(ServerPlayer.class, searchBox, ServerPlayer::isAlive);
         if (players.isEmpty()) {
             return Component.translatable("message.createentitycontrol.cluster_blocked.global.players.none");
         }
 
-        players.sort((a, b) -> Double.compare(a.distanceToSqr(center), b.distanceToSqr(center)));
+        players.sort(Comparator.comparingDouble(a -> a.distanceToSqr(center)));
         List<String> names = new ArrayList<>();
         for (int i = 0; i < players.size() && i < 3; i++) {
             names.add(players.get(i).getGameProfile().getName());
@@ -535,68 +552,30 @@ public final class ContraptionClusterController {
         return Component.literal(String.join(", ", names));
     }
 
-    private static final class ContraptionSnapshot {
-        private final Map<String, Integer> blockCounts;
-        private final int totalBlocks;
-        private final int totalStability;
-        private final long expiresAtTick;
-
-        private ContraptionSnapshot(Map<String, Integer> blockCounts, int totalBlocks, int totalStability, long expiresAtTick) {
-            this.blockCounts = blockCounts;
-            this.totalBlocks = totalBlocks;
-            this.totalStability = totalStability;
-            this.expiresAtTick = expiresAtTick;
-        }
+    private record ContraptionSnapshot(Map<String, Integer> blockCounts, int totalBlocks, int totalStability,
+                                       long expiresAtTick) {
     }
 
-    private static final class ClusterStats {
-        private final Map<String, Integer> blockCounts;
-        private final int totalBlocks;
-        private final int totalStability;
-        private final double minX;
-        private final double minY;
-        private final double minZ;
-        private final double maxX;
-        private final double maxY;
-        private final double maxZ;
-
-        private ClusterStats(Map<String, Integer> blockCounts, int totalBlocks, int totalStability,
-                             double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
-            this.blockCounts = blockCounts;
-            this.totalBlocks = totalBlocks;
-            this.totalStability = totalStability;
-            this.minX = minX;
-            this.minY = minY;
-            this.minZ = minZ;
-            this.maxX = maxX;
-            this.maxY = maxY;
-            this.maxZ = maxZ;
-        }
+    private record ClusterStats(Map<String, Integer> blockCounts, int totalBlocks, int totalStability, double minX,
+                                double minY, double minZ, double maxX, double maxY, double maxZ) {
 
         private int spanX() {
-            return (int) Math.ceil(maxX - minX);
+                return (int) Math.ceil(maxX - minX);
+            }
+
+            private int spanY() {
+                return (int) Math.ceil(maxY - minY);
+            }
+
+            private int spanZ() {
+                return (int) Math.ceil(maxZ - minZ);
+            }
+
+            private Vec3 center() {
+                return new Vec3((minX + maxX) / 2.0D, (minY + maxY) / 2.0D, (minZ + maxZ) / 2.0D);
+            }
         }
 
-        private int spanY() {
-            return (int) Math.ceil(maxY - minY);
-        }
-
-        private int spanZ() {
-            return (int) Math.ceil(maxZ - minZ);
-        }
-
-        private Vec3 center() {
-            return new Vec3((minX + maxX) / 2.0D, (minY + maxY) / 2.0D, (minZ + maxZ) / 2.0D);
-        }
-    }
-
-    private static final class ClusterLimitViolation {
-        private final String translationKey;
-        private final Object[] arguments;
-
-        private ClusterLimitViolation(String translationKey, Object... arguments) {
-            this.translationKey = translationKey;
-            this.arguments = arguments;
-        }
+    private record ClusterLimitViolation(String translationKey, Object... arguments) {
     }
 }
