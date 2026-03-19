@@ -25,13 +25,49 @@ public class Config {
                 .comment("The count limit of blocks that are used in block entities. The first para is count limit and the second para is stabilize para.");
         BLOCKS_LIMIT = BUILDER
                 .defineList("blocks_limit", Arrays.asList
-                        (
-                            Arrays.asList("create:deployer", 256, 100),
-                            Arrays.asList("create:mechanical_drill", 256, 100),
-                            Arrays.asList("minecraft:dirt", 2048, 10000),
-                            Arrays.asList("create:linear_chassis", 2048, -100),
-                            Arrays.asList("minecraft:netherrack", 2048, 5000)
-                ),
+                                (
+                                        Arrays.asList("create:deployer", 256, 100),
+                                        Arrays.asList("create:mechanical_drill", 256, 100),
+                                        Arrays.asList("create:mechanical_roller", 64, 100),
+                                        Arrays.asList("minecraft:dirt", 2048, 10000),
+                                        Arrays.asList("create:linear_chassis", 2048, -100),
+                                        Arrays.asList("minecraft:netherrack", 2048, 5000),
+                                        Arrays.asList("minecraft:stone", 2048, 4000),
+                                        Arrays.asList("minecraft:deepslate", 2048, 4000),
+                                        Arrays.asList("minecraft:end_stone", 2048, 4000),
+                                        Arrays.asList("minecraft:white_wool", 2048, 80),
+                                        Arrays.asList("create:item_vault", 2048, 360),
+                                        Arrays.asList("metalbarrels:obsidian_barrel", 2048, 1800),
+                                        Arrays.asList("metalbarrels:diamond_barrel", 2048, 1800),
+                                        Arrays.asList("metalbarrels:crystal_barrel", 2048, 1800),
+                                        Arrays.asList("metalbarrels:netherite_barrel", 2048, 2000),
+                                        Arrays.asList("metalbarrels:gold_barrel", 2048, 1100),
+                                        Arrays.asList("metalbarrels:iron_barrel", 2048, 800),
+                                        Arrays.asList("metalbarrels:copper_barrel", 2048, 700),
+                                        Arrays.asList("minecraft:barrel", 2048, 400),
+                                        Arrays.asList("minecraft:chest", 2048, 800),
+                                        Arrays.asList("twilightforest:twilight_oak_chest", 2048, 800),
+                                        Arrays.asList("twilightforest:canopy_chest", 2048, 800),
+                                        Arrays.asList("twilightforest:mangrove_chest", 2048, 800),
+                                        Arrays.asList("twilightforest:dark_chest", 2048, 800),
+                                        Arrays.asList("twilightforest:time_chest", 2048, 800),
+                                        Arrays.asList("twilightforest:transformation_chest", 2048, 800),
+                                        Arrays.asList("twilightforest:mining_chest", 2048, 800),
+                                        Arrays.asList("twilightforest:sorting_chest", 2048, 800),
+                                        Arrays.asList("ae2:smooth_sky_stone_chest", 2048, 800),
+                                        Arrays.asList("quark:ancient_chest", 2048, 800),
+                                        Arrays.asList("quark:azalea_chest", 2048, 800),
+                                        Arrays.asList("quark:blossom_chest", 2048, 800),
+                                        Arrays.asList("quark:oak_chest", 2048, 800),
+                                        Arrays.asList("quark:spruce_chest", 2048, 800),
+                                        Arrays.asList("quark:birch_chest", 2048, 800),
+                                        Arrays.asList("quark:jungle_chest", 2048, 800),
+                                        Arrays.asList("quark:acacia_chest", 2048, 800),
+                                        Arrays.asList("quark:dark_oak_chest", 2048, 800),
+                                        Arrays.asList("quark:crimson_chest", 2048, 800),
+                                        Arrays.asList("quark:mangrove_chest", 2048, 800),
+                                        Arrays.asList("quark:cherry_chest", 2048, 800)
+                                ),
                         it -> it instanceof List && ((List<?>) it).get(0) instanceof String && ((List<?>) it).get(1) instanceof Number);
 
     }
@@ -151,7 +187,7 @@ public class Config {
                     .comment("If you squeeze a stone with dirt and stone in this list the dirt will drop while stone leave!")
                     .defineListAllowEmpty("blocks_uncrushable", List.of(
                             "minecraft:deepslate","minecraft:stone","minecraft:cobblestone"
-            ), Config::validateItemName);
+                    ), Config::validateItemName);
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLOCKS_UNCRUSHABLE_IGNORE =
             BUILDER.comment("--------------------------------------------------------------------------")
@@ -162,7 +198,8 @@ public class Config {
                     .comment("Warning:Block burned by lava might be conflict with player,you can add minecraft:lava to avoid block burned by lava!"
                     )
                     .defineListAllowEmpty("blocks_crushable", List.of(
-                            "minecraft:water"
+                            "minecraft:water",
+                            "minecraft:lava"
                     ), Config::validateItemName);
 
 
