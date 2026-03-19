@@ -124,7 +124,7 @@ public final class BlockifyContraptionCommand {
 
         PENDING_CONFIRMATIONS.remove(player.getUUID());
         contraptionEntity.disassemble();
-        source.sendSuccess(buildContraptionMessage("command.createentitycontrol.blockify.success", contraptionEntity), true);
+        source.sendSuccess(() -> buildContraptionMessage("command.createentitycontrol.blockify.success", contraptionEntity), true);
         return 1;
     }
 
@@ -142,7 +142,7 @@ public final class BlockifyContraptionCommand {
             return 0;
         }
 
-        source.sendSuccess(Component.translatable("command.createentitycontrol.blockify.cancelled"), false);
+        source.sendSuccess(() -> Component.translatable("command.createentitycontrol.blockify.cancelled"), false);
         return 1;
     }
 

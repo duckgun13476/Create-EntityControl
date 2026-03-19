@@ -108,6 +108,23 @@ public class Config {
                     .comment("Single-contraption limits stay unchanged; only the cluster total uses this multiplier.")
                     .defineInRange("contraption cluster block limit multiplier", 1.5D, 0.0D, 64.0D);
 
+    private static final ForgeConfigSpec.BooleanValue CONTRAPTION_CLUSTER_CHAIN_DETECTION =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("Enable chained cluster detection for nearby multiple contraptions.")
+                    .comment("This can detect multi-entity clusters, but it costs some extra performance.")
+                    .define("contraption cluster chain detection", true);
+
+    private static final ForgeConfigSpec.IntValue CONTRAPTION_CLUSTER_SCAN_INTERVAL_SECONDS =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("How often contraption cluster validation runs, in seconds.")
+                    .comment("This controls the periodic cluster scan cooldown added for performance control.")
+                    .defineInRange("contraption cluster scan interval seconds", 1, 1, 10);
+
+    private static final ForgeConfigSpec.IntValue CONTRAPTION_CLUSTER_GLOBAL_NOTIFY_COOLDOWN_MINUTES =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("Cooldown for global cluster-blocked chat notifications, in minutes.")
+                    .defineInRange("contraption cluster global notify cooldown minutes", 5, 1, 60);
+
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLACKS_STRING =
             BUILDER.comment("--------------------------------------------------------------------------")
@@ -200,6 +217,9 @@ public class Config {
     public static double contraption_cluster_local_notify_radius;
     public static double contraption_cluster_global_nearby_players_radius;
     public static double contraption_cluster_block_limit_multiplier;
+    public static boolean contraption_cluster_chain_detection;
+    public static int contraption_cluster_scan_interval_seconds;
+    public static int contraption_cluster_global_notify_cooldown_minutes;
     public static Set<String> blocks_uncrushable; // 定义为 Set<String>
     public static Set<String> blocks_uncrushableIgnore;
     public static Set<String> blocks_unmoved; // 定义为 Set<String>
@@ -232,6 +252,9 @@ public class Config {
         contraption_cluster_local_notify_radius = CONTRAPTION_CLUSTER_LOCAL_NOTIFY_RADIUS.get();
         contraption_cluster_global_nearby_players_radius = CONTRAPTION_CLUSTER_GLOBAL_NEARBY_PLAYERS_RADIUS.get();
         contraption_cluster_block_limit_multiplier = CONTRAPTION_CLUSTER_BLOCK_LIMIT_MULTIPLIER.get();
+        contraption_cluster_chain_detection = CONTRAPTION_CLUSTER_CHAIN_DETECTION.get();
+        contraption_cluster_scan_interval_seconds = CONTRAPTION_CLUSTER_SCAN_INTERVAL_SECONDS.get();
+        contraption_cluster_global_notify_cooldown_minutes = CONTRAPTION_CLUSTER_GLOBAL_NOTIFY_COOLDOWN_MINUTES.get();
         block_entity_max_stabilize_count = BLOCK_ENTITY_MAX_STABILIZE_COUNT.get();
         enableBlockEntityExperimentPara = ENABLE_BLOCK_EXPERIMENT_PARA.get();
         blocksLimitValues = new ArrayList<>();

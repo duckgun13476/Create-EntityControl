@@ -68,8 +68,8 @@ public class ClusterBlockedOverlay {
         int centerX = event.getWindow().getGuiScaledWidth() / 2;
         int baseY = event.getWindow().getGuiScaledHeight() / 2 + 18;
 
-        font.drawShadow(event.getPoseStack(), line1, centerX - font.width(line1) / 2.0F, baseY, HINT_GOLD);
-        font.drawShadow(event.getPoseStack(), line2, centerX - font.width(line2) / 2.0F, baseY + 11, HINT_GOLD);
+        event.getGuiGraphics().drawString(font, line1, centerX - font.width(line1) / 2, baseY, HINT_GOLD, true);
+        event.getGuiGraphics().drawString(font, line2, centerX - font.width(line2) / 2, baseY + 11, HINT_GOLD, true);
     }
 
     private static void pruneExpired(long gameTime) {
