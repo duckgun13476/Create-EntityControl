@@ -106,6 +106,12 @@ public class Config {
                     .comment("This does not change who receives the global message.")
                     .defineInRange("contraption cluster global nearby players radius", 96.0D, 1.0D, 512.0D);
 
+    private static final ForgeConfigSpec.DoubleValue CONTRAPTION_CLUSTER_BLOCK_LIMIT_MULTIPLIER =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("Multiplier applied to cluster-level aggregated block limits from blocks_limit.")
+                    .comment("Single-contraption limits stay unchanged; only the cluster total uses this multiplier.")
+                    .defineInRange("contraption cluster block limit multiplier", 1.5D, 0.0D, 64.0D);
+
 
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLACKS_STRING =
             BUILDER.comment("--------------------------------------------------------------------------")
@@ -197,6 +203,7 @@ public class Config {
     public static double contraption_cluster_scan_radius;
     public static double contraption_cluster_local_notify_radius;
     public static double contraption_cluster_global_nearby_players_radius;
+    public static double contraption_cluster_block_limit_multiplier;
     public static Set<String> blocks_uncrushable; // 定义为 Set<String>
     public static Set<String> blocks_uncrushableIgnore;
     public static Set<String> blocks_unmoved; // 定义为 Set<String>
@@ -224,6 +231,7 @@ public class Config {
         contraption_cluster_scan_radius = CONTRAPTION_CLUSTER_SCAN_RADIUS.get();
         contraption_cluster_local_notify_radius = CONTRAPTION_CLUSTER_LOCAL_NOTIFY_RADIUS.get();
         contraption_cluster_global_nearby_players_radius = CONTRAPTION_CLUSTER_GLOBAL_NEARBY_PLAYERS_RADIUS.get();
+        contraption_cluster_block_limit_multiplier = CONTRAPTION_CLUSTER_BLOCK_LIMIT_MULTIPLIER.get();
         block_entity_max_stabilize_count = BLOCK_ENTITY_MAX_STABILIZE_COUNT.get();
         enableBlockEntityExperimentPara = ENABLE_BLOCK_EXPERIMENT_PARA.get();
         blocksLimitValues = new ArrayList<>();

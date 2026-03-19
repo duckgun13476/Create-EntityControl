@@ -212,13 +212,14 @@ public final class ContraptionClusterController {
         for (List<Object> limitEntry : Config.blocksLimitValues) {
             String blockName = (String) limitEntry.get(0);
             int allowedCount = (Integer) limitEntry.get(1);
+            int clusterAllowedCount = Math.max(0, (int) Math.floor(allowedCount * Config.contraption_cluster_block_limit_multiplier));
             int actualCount = stats.blockCounts.getOrDefault(blockName, 0);
-            if (actualCount > allowedCount) {
+            if (actualCount > clusterAllowedCount) {
                 return new ClusterLimitViolation(
                         "message.createentitycontrol.cluster_blocked.reason.block_limit",
                         translateBlockName(blockName),
                         Integer.toString(actualCount),
-                        Integer.toString(allowedCount)
+                        Integer.toString(clusterAllowedCount)
                 );
             }
         }
