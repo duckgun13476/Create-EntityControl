@@ -1,4 +1,5 @@
 import net.darkhax.curseforgegradle.TaskPublishCurseForge
+import org.gradle.jvm.tasks.Jar
 
 
 plugins {
@@ -157,6 +158,12 @@ tasks.configureEach { task ->
     println "Available task: ${task.name}"
 }
 
+def jarTask = tasks.named('jar', Jar)
+def jarArchiveFile = jarTask.flatMap { it.archiveFile }
+def publishModVersion = mod_version
+def publishMinecraftVersion = minecraft_version
+def publishDisplayName = display_name
+def apiPropertiesFile = layout.projectDirectory.file('api.properties').asFile
 
 
 jar {
@@ -175,14 +182,13 @@ jar {
 
 tasks.register('PublishInfo') {
     doLast {
-        println "Reobfuscated JAR file path: ${jar.archiveFile.get().asFile.absolutePath}"
-        def versionParts = mod_version.split("-")
-        println "version = \"$minecraft_version-$mod_version\"\n" +
-                "    displayName = \"${display_name}_v${versionParts[0]}_for_Create_v${versionParts[1]}_neoforge\""
-        def propertiesFile = file('api.properties')
-        if (propertiesFile.exists()) {
+        println "Reobfuscated JAR file path: ${jarArchiveFile.get().asFile.absolutePath}"
+        def versionParts = publishModVersion.split("-")
+        println "version = \"$publishMinecraftVersion-$publishModVersion\"\n" +
+                "    displayName = \"${publishDisplayName}_v${versionParts[0]}_for_Create_v${versionParts[1]}_neoforge\""
+        if (apiPropertiesFile.exists()) {
             def properties = new Properties()
-            properties.load(new FileInputStream(propertiesFile))
+            properties.load(new FileInputStream(apiPropertiesFile))
             def cfToken = properties.getProperty("CF_TOKEN")
             def modrinthToken = properties.getProperty("MODRINTH_TOKEN")
 
@@ -242,7 +248,7 @@ publishMods {
     def modrinthTokenGet = properties.getProperty("MODRINTH_TOKEN")
     def versionParts = mod_version.split("-")
 
-    file =  jar.archiveFile
+    file = jarArchiveFile
     changelog = rootProject.file("./update/changelog.md").text
     type = STABLE
     version = "$minecraft_version-$mod_version"
