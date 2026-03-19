@@ -45,17 +45,18 @@ public final class ContraptionClusterController {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final int HINT_GOLD = 0xE7CD73;
     private static final long SNAPSHOT_REFRESH_INTERVAL = 20L;
-    private static final long VALIDATION_INTERVAL = 10L;
     private static final long BLOCKED_CLUSTER_DURATION = 10L;
+    private static final long CLEANUP_INTERVAL = 20L;
     private static final long LOCAL_NOTIFY_COOLDOWN = 100L;
-    private static final long GLOBAL_NOTIFY_COOLDOWN = 60L * 20L;
     private static final int GLOBAL_NOTIFY_PLAYER_READY_TICKS = 40;
     private static final int OVERLAY_SYNC_DURATION = 60;
 
     private static final Map<UUID, ContraptionSnapshot> SNAPSHOTS = new HashMap<>();
     private static final Map<UUID, Long> BLOCKED_UNTIL = new HashMap<>();
+    private static final Map<UUID, Long> NEXT_VALIDATION_TICK = new HashMap<>();
     private static final Map<String, Long> LOCAL_NOTIFY_UNTIL = new HashMap<>();
     private static final Map<String, Long> GLOBAL_NOTIFY_UNTIL = new HashMap<>();
+    private static long nextCleanupTick = Long.MIN_VALUE;
 
     private ContraptionClusterController() {}
 
@@ -73,11 +74,13 @@ public final class ContraptionClusterController {
             return;
         }
 
-        if (gameTime % VALIDATION_INTERVAL != Math.floorMod(entity.getId(), VALIDATION_INTERVAL)) {
+        Long nextValidationTick = NEXT_VALIDATION_TICK.get(entity.getUUID());
+        if (nextValidationTick != null && nextValidationTick > gameTime) {
             return;
         }
 
         Set<AbstractContraptionEntity> cluster = collectCluster(entity);
+        markValidated(cluster, gameTime + getValidationIntervalTicks());
         if (cluster.size() <= 1) {
             return;
         }
@@ -116,6 +119,7 @@ public final class ContraptionClusterController {
         }
         SNAPSHOTS.remove(entity.getUUID());
         BLOCKED_UNTIL.remove(entity.getUUID());
+        NEXT_VALIDATION_TICK.remove(entity.getUUID());
     }
 
     private static boolean isExcluded(AbstractContraptionEntity entity) {
@@ -123,14 +127,38 @@ public final class ContraptionClusterController {
     }
 
     private static void cleanup(long gameTime) {
+        if (gameTime < nextCleanupTick) {
+            return;
+        }
+        nextCleanupTick = gameTime + CLEANUP_INTERVAL;
         BLOCKED_UNTIL.entrySet().removeIf(entry -> entry.getValue() < gameTime);
+        NEXT_VALIDATION_TICK.entrySet().removeIf(entry -> entry.getValue() < gameTime);
         SNAPSHOTS.entrySet().removeIf(entry -> entry.getValue().expiresAtTick < gameTime);
         LOCAL_NOTIFY_UNTIL.entrySet().removeIf(entry -> entry.getValue() < gameTime);
         GLOBAL_NOTIFY_UNTIL.entrySet().removeIf(entry -> entry.getValue() < gameTime);
     }
 
+    private static void markValidated(Set<AbstractContraptionEntity> cluster, long nextAllowedTick) {
+        for (AbstractContraptionEntity member : cluster) {
+            NEXT_VALIDATION_TICK.put(member.getUUID(), nextAllowedTick);
+        }
+    }
+
+    private static long getValidationIntervalTicks() {
+        return Math.max(1L, Config.contraption_cluster_scan_interval_seconds) * 20L;
+    }
+
+    private static long getGlobalNotifyCooldownTicks() {
+        return Math.max(1L, Config.contraption_cluster_global_notify_cooldown_minutes) * 60L * 20L;
+    }
+
     private static Set<AbstractContraptionEntity> collectCluster(AbstractContraptionEntity root) {
         Set<AbstractContraptionEntity> cluster = new HashSet<>();
+        if (!Config.contraption_cluster_chain_detection) {
+            cluster.add(root);
+            return cluster;
+        }
+
         Deque<AbstractContraptionEntity> queue = new ArrayDeque<>();
         queue.add(root);
 
@@ -368,7 +396,8 @@ public final class ContraptionClusterController {
 
         long globalNotifyUntil = GLOBAL_NOTIFY_UNTIL.getOrDefault(clusterKey, Long.MIN_VALUE);
         if (globalNotifyUntil < gameTime) {
-            GLOBAL_NOTIFY_UNTIL.put(clusterKey, gameTime + GLOBAL_NOTIFY_COOLDOWN);
+            long nextAllowedTick = gameTime + getGlobalNotifyCooldownTicks();
+            GLOBAL_NOTIFY_UNTIL.put(clusterKey, nextAllowedTick);
             Component nearbyPlayers = buildNearbyPlayersComponent(stats, sample);
             List<Component> globalLines = buildGlobalNotificationLines(violation, location, nearbyPlayers);
             for (ServerPlayer player : readyPlayers) {
@@ -385,20 +414,19 @@ public final class ContraptionClusterController {
                 }
             }
             if (Config.debug) {
-                LOGGER.info("cluster-global-notify sent clusterKey={} nextAllowedTick={}", clusterKey, gameTime + GLOBAL_NOTIFY_COOLDOWN);
+                LOGGER.info("cluster-global-notify sent clusterKey={} nextAllowedTick={}", clusterKey, nextAllowedTick);
             }
         }
     }
 
     private static List<Component> buildGlobalNotificationLines(ClusterLimitViolation violation, Component location, Component nearbyPlayers) {
-        MutableComponent title = gold(Component.translatable("message.createentitycontrol.cluster_blocked.global.title"));
-        MutableComponent reason = gold(Component.translatable(
-                "message.createentitycontrol.cluster_blocked.global.reason",
+        MutableComponent summary = gold(Component.translatable(
+                "message.createentitycontrol.cluster_blocked.global.summary",
                 Component.translatable(violation.translationKey, violation.arguments)
         ));
         MutableComponent locationLine = gold(Component.translatable("message.createentitycontrol.cluster_blocked.global.location", location));
         MutableComponent playersLine = gold(Component.translatable("message.createentitycontrol.cluster_blocked.global.players", nearbyPlayers));
-        return List.of(title, reason, locationLine, playersLine);
+        return List.of(summary, locationLine, playersLine);
     }
 
     private static void syncOverlay(Set<AbstractContraptionEntity> cluster, ClusterLimitViolation violation, Component location, AbstractContraptionEntity sample) {
