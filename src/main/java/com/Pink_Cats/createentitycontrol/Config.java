@@ -89,6 +89,23 @@ public class Config {
                     .comment("The longest Y  distance of block entity | If set 20: 42*14*42 is allowed but 42*24*42 is forbidden.")
                     .defineInRange("block entity max length Y", 60, 3, 500);
 
+    private static final ForgeConfigSpec.DoubleValue CONTRAPTION_CLUSTER_SCAN_RADIUS =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("The scan radius used by contraption cluster detection.")
+                    .comment("Only contraptions within this radius will be merged into one cluster for cluster-level limit checks.")
+                    .defineInRange("contraption cluster scan radius", 96.0D, 1.0D, 512.0D);
+
+    private static final ForgeConfigSpec.DoubleValue CONTRAPTION_CLUSTER_LOCAL_NOTIFY_RADIUS =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("The local notify radius for nearby actionbar hints and overlay sync.")
+                    .defineInRange("contraption cluster local notify radius", 96.0D, 1.0D, 512.0D);
+
+    private static final ForgeConfigSpec.DoubleValue CONTRAPTION_CLUSTER_GLOBAL_NEARBY_PLAYERS_RADIUS =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("The search radius used to list nearby players inside the global cluster-blocked message.")
+                    .comment("This does not change who receives the global message.")
+                    .defineInRange("contraption cluster global nearby players radius", 96.0D, 1.0D, 512.0D);
+
 
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLACKS_STRING =
             BUILDER.comment("--------------------------------------------------------------------------")
@@ -177,6 +194,9 @@ public class Config {
     public static int keep_structure_refresh_time;
     public static float squeeze_destroy_speed;
     public static int mechanical_bearing_gear_max_speed;
+    public static double contraption_cluster_scan_radius;
+    public static double contraption_cluster_local_notify_radius;
+    public static double contraption_cluster_global_nearby_players_radius;
     public static Set<String> blocks_uncrushable; // 定义为 Set<String>
     public static Set<String> blocks_uncrushableIgnore;
     public static Set<String> blocks_unmoved; // 定义为 Set<String>
@@ -201,6 +221,9 @@ public class Config {
         mechanical_bearing_gear_max_speed = MECHANICAL_BEARING_GEAR_MAX_SPEED.get();
         blockEntityYMaxLength = BLOCK_ENTITY_MAX_Y_LENGTH.get();
         blockEntityXZMaxLength = BLOCK_ENTITY_MAX_XZ_LENGTH.get();
+        contraption_cluster_scan_radius = CONTRAPTION_CLUSTER_SCAN_RADIUS.get();
+        contraption_cluster_local_notify_radius = CONTRAPTION_CLUSTER_LOCAL_NOTIFY_RADIUS.get();
+        contraption_cluster_global_nearby_players_radius = CONTRAPTION_CLUSTER_GLOBAL_NEARBY_PLAYERS_RADIUS.get();
         block_entity_max_stabilize_count = BLOCK_ENTITY_MAX_STABILIZE_COUNT.get();
         enableBlockEntityExperimentPara = ENABLE_BLOCK_EXPERIMENT_PARA.get();
         blocksLimitValues = new ArrayList<>();
