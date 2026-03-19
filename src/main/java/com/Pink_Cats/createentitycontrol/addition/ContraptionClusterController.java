@@ -44,15 +44,12 @@ public final class ContraptionClusterController {
 
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final int HINT_GOLD = 0xE7CD73;
-    private static final double CLUSTER_SCAN_RADIUS = 32.0D;
     private static final long SNAPSHOT_REFRESH_INTERVAL = 20L;
     private static final long VALIDATION_INTERVAL = 10L;
     private static final long BLOCKED_CLUSTER_DURATION = 10L;
     private static final long LOCAL_NOTIFY_COOLDOWN = 100L;
     private static final long GLOBAL_NOTIFY_COOLDOWN = 60L * 20L;
     private static final int GLOBAL_NOTIFY_PLAYER_READY_TICKS = 40;
-    private static final double LOCAL_NOTIFY_RADIUS = 48.0D;
-    private static final double GLOBAL_NEAREST_PLAYER_RADIUS = 96.0D;
     private static final int OVERLAY_SYNC_DURATION = 60;
 
     private static final Map<UUID, ContraptionSnapshot> SNAPSHOTS = new HashMap<>();
@@ -143,7 +140,7 @@ public final class ContraptionClusterController {
                 continue;
             }
 
-            AABB searchBox = current.getBoundingBox().inflate(CLUSTER_SCAN_RADIUS);
+            AABB searchBox = current.getBoundingBox().inflate(Config.contraption_cluster_scan_radius);
             List<AbstractContraptionEntity> nearby = current.level.getEntitiesOfClass(
                     AbstractContraptionEntity.class,
                     searchBox,
@@ -340,7 +337,7 @@ public final class ContraptionClusterController {
                     Component.translatable(violation.translationKey, violation.arguments)
             ));
 
-            AABB notifyBox = new AABB(center, center).inflate(LOCAL_NOTIFY_RADIUS);
+            AABB notifyBox = new AABB(center, center).inflate(Config.contraption_cluster_local_notify_radius);
             for (ServerPlayer player : sample.level.getEntitiesOfClass(ServerPlayer.class, notifyBox, ServerPlayer::isAlive)) {
                 if (isLookingAtCluster(player, cluster)) {
                     continue;
@@ -405,7 +402,7 @@ public final class ContraptionClusterController {
 
     private static void syncOverlay(Set<AbstractContraptionEntity> cluster, ClusterLimitViolation violation, Component location, AbstractContraptionEntity sample) {
         Vec3 center = sample.position();
-        AABB notifyBox = new AABB(center, center).inflate(LOCAL_NOTIFY_RADIUS);
+        AABB notifyBox = new AABB(center, center).inflate(Config.contraption_cluster_local_notify_radius);
         List<Integer> entityIds = new ArrayList<>(cluster.size());
         for (AbstractContraptionEntity entity : cluster) {
             entityIds.add(entity.getId());
@@ -523,7 +520,7 @@ public final class ContraptionClusterController {
 
     private static Component buildNearbyPlayersComponent(ClusterStats stats, AbstractContraptionEntity sample) {
         Vec3 center = stats.center();
-        AABB searchBox = new AABB(center, center).inflate(GLOBAL_NEAREST_PLAYER_RADIUS);
+        AABB searchBox = new AABB(center, center).inflate(Config.contraption_cluster_global_nearby_players_radius);
         List<ServerPlayer> players = sample.level.getEntitiesOfClass(ServerPlayer.class, searchBox, ServerPlayer::isAlive);
         if (players.isEmpty()) {
             return Component.translatable("message.createentitycontrol.cluster_blocked.global.players.none");
