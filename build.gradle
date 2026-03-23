@@ -207,7 +207,9 @@ dependencies {
     modImplementation("curse.maven:curios-309927:6418456")
     //modCompileOnly("top.theillusivec4.curios:curios-forge:${curios_version}+${curios_minecraft_version}:api")
     //modRuntimeOnly("top.theillusivec4.curios:curios-forge:${curios_version}+${curios_minecraft_version}")
+    modImplementation("curse.maven:open-parties-and-claims-636608:7112737")
 
+    modImplementation("curse.maven:xaeros-world-map-317780:7598469")
 
     modImplementation("curse.maven:jade-324717:${jade_id}")
     modImplementation("curse.maven:journeymap-32274:5457831")
