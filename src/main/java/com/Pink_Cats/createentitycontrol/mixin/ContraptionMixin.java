@@ -2,6 +2,7 @@ package com.Pink_Cats.createentitycontrol.mixin;
 
 import com.Pink_Cats.createentitycontrol.Config;
 import com.Pink_Cats.createentitycontrol.addition.EntityEnrollment;
+import com.Pink_Cats.createentitycontrol.addition.OpacCompatBridge;
 import com.Pink_Cats.createentitycontrol.addition.StructureBlockStorage;
 import com.Pink_Cats.createentitycontrol.addition.StructureFunc;
 import com.google.common.collect.Multimap;
@@ -486,7 +487,6 @@ public class ContraptionMixin {
 	 */
 	@Inject(method = "addBlocksToWorld", at = @At("HEAD"),cancellable = true)
 	public void injectAddBlocksToWorld(Level world, StructureTransform transform, CallbackInfo ci) {
-
         //same structure ignore
         if (Config.keep_structure_at_first) {
 
@@ -548,7 +548,9 @@ public class ContraptionMixin {
 
                 BlockPos targetPos = transform.apply(block.pos);
                 BlockState state = transform.apply(block.state);
+                OpacCompatBridge.captureCreateTargetPos(targetPos);
                 BlockState blockState = world.getBlockState(targetPos);
+                blockState = OpacCompatBridge.replaceCreateBreakBlockState(blockState, world, this);
 
                 boolean squeezeBlock;
                 String blockStateString = blockState.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
@@ -674,15 +676,23 @@ public class ContraptionMixin {
 					Block.UPDATE_MOVE_BY_PISTON | Block.UPDATE_ALL, 512);
 		}
 
-		for (AABB box : superglue) {
-			box = new AABB(transform.apply(new Vec3(box.minX, box.minY, box.minZ)),
-					transform.apply(new Vec3(box.maxX, box.maxY, box.maxZ)));
-			if (!world.isClientSide) {
-				world.addFreshEntity(new SuperGlueEntity(world, box));
-			}
-
-			storage.clear();
-		}
+        boolean opacGlueHooked = false;
+        if (!world.isClientSide && !superglue.isEmpty()) {
+            opacGlueHooked = OpacCompatBridge.preCreateDisassembleSuperGlue(world, this);
+        }
+        try {
+            for (AABB box : superglue) {
+                box = new AABB(transform.apply(new Vec3(box.minX, box.minY, box.minZ)),
+                        transform.apply(new Vec3(box.maxX, box.maxY, box.maxZ)));
+                if (!world.isClientSide) {
+                    world.addFreshEntity(new SuperGlueEntity(world, box));
+                }
+            }
+        } finally {
+            if (opacGlueHooked) {
+                OpacCompatBridge.postCreateDisassembleSuperGlue();
+            }
+        }
 
         ci.cancel();
 	}

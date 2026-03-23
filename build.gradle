@@ -179,6 +179,9 @@ dependencies {
     modImplementation("curse.maven:create-328085:5797604")
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
+
+    modImplementation("curse.maven:open-parties-and-claims-636608:7652870")
+    modImplementation("curse.maven:xaeros-world-map-317780:7598464")
 }
 
 
