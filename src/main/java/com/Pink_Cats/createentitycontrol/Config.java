@@ -96,6 +96,11 @@ public class Config {
                     .comment("Whether to log debug information for extra runtime control logic such as contraption clusters.")
                     .define("debug", false);
 
+    private static final ForgeConfigSpec.BooleanValue MINECART_PROTECTION =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("Protect vanilla minecarts from lava and fire damage, and reduce non-player incoming damage to 25%.")
+                    .comment("Player attacks keep vanilla damage so players can still break minecarts normally.")
+                    .define("minecart improve", true);
 
     private static final ForgeConfigSpec.IntValue SQUEEZE_DESTROY_SPEED =
             BUILDER.comment("--------------------------------------------------------------------------")
@@ -242,6 +247,7 @@ public class Config {
 
     public static boolean debug_block_entity_problem;
     public static boolean debug;
+    public static boolean minecart_protection;
     public static int blockEntityXZMaxLength;
     public static int block_entity_max_stabilize_count;
     public static boolean enableBlockEntityExperimentPara;
@@ -281,6 +287,7 @@ public class Config {
     private static void Load_cec_config() {
         debug_block_entity_problem = DEBUG_BLOCK_ENTITY_PROBLEM.get();
         debug = DEBUG.get();
+        minecart_protection = MINECART_PROTECTION.get();
         squeeze_destroy_speed = SQUEEZE_DESTROY_SPEED.get().floatValue()/10;
         mechanical_bearing_gear_max_speed = MECHANICAL_BEARING_GEAR_MAX_SPEED.get();
         blockEntityYMaxLength = BLOCK_ENTITY_MAX_Y_LENGTH.get();
