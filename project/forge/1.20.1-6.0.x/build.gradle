@@ -103,7 +103,11 @@ legacyForge {
 }
 
 sourceSets.main {
+    java {
+        srcDir rootProject.file('common/src/main/java')
+    }
     resources {
+        srcDir rootProject.file('common/src/main/resources')
         srcDir 'src/generated/resources'
         exclude '.cache/'
     }
