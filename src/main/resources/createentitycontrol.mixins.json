@@ -6,9 +6,11 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "AbstractContraptionEntityMixin",
+    "AbstractMinecartMixin",
     "AssemblyExceptionMixin",
     "ContraptionMixin",
     "ControlledContraptionEntityAccessor",
+    "EntityMixin",
     "MechanicalBearingBlockEntityMixin",
     "StructureCheckMixin"
   ],
