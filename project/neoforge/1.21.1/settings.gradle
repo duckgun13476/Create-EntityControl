@@ -10,4 +10,11 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
 }
 
+// See root settings.gradle. This also keeps direct imports/builds from this
+// version directory from hitting the ModDev/IdeaExt duplicate "settings"
+// extension failure under IntelliJ sync.
+if (System.getProperty('idea.sync.active') == 'true') {
+    System.setProperty('idea.sync.active', 'false')
+}
+
 rootProject.name = 'CreateEntityControl'

@@ -104,10 +104,10 @@ legacyForge {
 
 sourceSets.main {
     java {
-        srcDir rootProject.file('common/src/main/java')
+        srcDir file('../../../common/src/main/java')
     }
     resources {
-        srcDir rootProject.file('common/src/main/resources')
+        srcDir file('../../../common/src/main/resources')
         srcDir 'src/generated/resources'
         exclude '.cache/'
     }
@@ -276,7 +276,7 @@ ext.cec_publish_modrinth_loaders = 'forge'
 ext.cec_publish_required_dependencies = 'create'
 ext.cec_publish_optional_dependencies = 'jei,observable'
 
-apply from: rootProject.file('gradle/cec-publishing.gradle')
+apply from: file('../../../gradle/cec-publishing.gradle')
 
 
 

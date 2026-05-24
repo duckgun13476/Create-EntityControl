@@ -22,6 +22,15 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
 }
 
+// IntelliJ can inject org.jetbrains.gradle.ext before NeoForge ModDev applies.
+// ModDev 2.0.107 then tries to apply the same IDEA extension during sync and
+// fails with "Cannot add extension with name 'settings'". Keep Gradle sync/build
+// usable by disabling ModDev's IntelliJ integration path for this multi-version
+// project; run configurations can still be launched through Gradle tasks.
+if (System.getProperty('idea.sync.active') == 'true') {
+    System.setProperty('idea.sync.active', 'false')
+}
+
 rootProject.name = 'CreateEntityControl'
 
 include 'forge-1.19.2-0.5.1i'
