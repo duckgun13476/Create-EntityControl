@@ -12,8 +12,8 @@ plugins {
     id "me.modmuss50.mod-publish-plugin" version "0.8.3"
 }
 
+apply from: file('../../../gradle/cec-property-loader.gradle')
 apply from: "./gradle/java.gradle"
-apply from: "gradle/property_loader.gradle"
 
 
 group = "com.${mod_authors}.${mod_id}"
@@ -166,18 +166,6 @@ publishing {
     }
 }
 
-tasks.configureEach { task ->
-    println "Available task: ${task.name}"
-}
-
-def jarTask = tasks.named('jar', Jar)
-def jarArchiveFile = jarTask.flatMap { it.archiveFile }
-def publishModVersion = mod_version
-def publishMinecraftVersion = minecraft_version
-def publishDisplayName = display_name
-def apiPropertiesFile = layout.projectDirectory.file('api.properties').asFile
-
-
 jar {
     from('LICENSE.txt') {
         rename { "${it}_${archivesBaseName}" }
@@ -191,100 +179,17 @@ jar {
 
 }
 
+ext.cec_publish_artifact_task_name = 'jar'
+ext.cec_publish_artifact_relative_path = "build/libs/${package_name}-${mod_version}-neoforge-${minecraft_version}.jar"
+ext.cec_publish_loader_id = 'neoforge'
+ext.cec_publish_display_suffix = 'neoforge'
+ext.cec_publish_version_suffix = 'neoforge'
+ext.cec_publish_curseforge_loaders = 'NeoForge'
+ext.cec_publish_modrinth_loaders = 'neoforge'
+ext.cec_publish_required_dependencies = 'create'
+ext.cec_publish_optional_dependencies = 'jei,observable'
 
-tasks.register('PublishInfo') {
-    doLast {
-        println "Reobfuscated JAR file path: ${jarArchiveFile.get().asFile.absolutePath}"
-        def versionParts = publishModVersion.split("-")
-        println "version = \"$publishMinecraftVersion-$publishModVersion\"\n" +
-                "    displayName = \"${publishDisplayName}_v${versionParts[0]}_for_Create_v${versionParts[1]}_neoforge\""
-        if (apiPropertiesFile.exists()) {
-            def properties = new Properties()
-            properties.load(new FileInputStream(apiPropertiesFile))
-            def cfToken = properties.getProperty("CF_TOKEN")
-            def modrinthToken = properties.getProperty("MODRINTH_TOKEN")
-
-            println "CF_TOKEN: $cfToken"
-            println "MODRINTH_TOKEN: $modrinthToken"
-        } else {
-            println "api.properties not exist"
-        }
-    }
-    group = 'Publishing'
-}
-
-
-tasks.register('publishAll') {
-    dependsOn 'publishCurseForge'
-    dependsOn 'publishMods'
-    group = 'Publishing'
-}
-
-
-
-
-tasks.register('publishCurseForge', TaskPublishCurseForge) {
-    dependsOn 'jar'
-    def propertiesFile = file('api.properties')
-    def properties = new Properties()
-    if (propertiesFile.exists()) {
-        properties.load(new FileInputStream(propertiesFile))
-    }
-
-    var cfToken = properties.getProperty("CF_TOKEN")
-    apiToken = cfToken
-    def versionParts = mod_version.split("-")
-
-    def mainFile = upload(curseforge_id, new File("./build/libs/${package_name}-${mod_version}-neoforge-${minecraft_version}.jar"))
-    mainFile.changelog = new File("./update/changelog.md").text.split("\n\n\n")[0]
-    mainFile.addEnvironment("Client", "Server")
-    mainFile.addGameVersion("${minecraft_version}")
-    mainFile.addModLoader("NeoForge")
-    mainFile.addRequirement("create")
-
-
-    mainFile.displayName = "${display_name}_v${versionParts[0]}_for_Create_v${versionParts[1]}_neoforge"
-
-    mainFile.addOptional(
-            "jei",
-            "observable")
-    mainFile.releaseType = publish_version //beta release. is alpha.
-    disableVersionDetection()
-}
-
-
-
-
-publishMods {
-    def propertiesFile = file('api.properties')
-    def properties = new Properties()
-    if (propertiesFile.exists()) {
-        properties.load(new FileInputStream(propertiesFile))
-    }
-    def modrinthTokenGet = properties.getProperty("MODRINTH_TOKEN")
-    def versionParts = mod_version.split("-")
-
-    file = jarArchiveFile
-    changelog = project.file("./update/changelog.md").text
-    type = STABLE
-    version = "$minecraft_version-$mod_version"
-    displayName = "${display_name}_v${versionParts[0]}_for_Create_v${versionParts[1]}"
-
-    modLoaders.add("neoforge")
-
-    var mrToken = modrinthTokenGet
-    if(mrToken != null) {
-        modrinth {
-            accessToken = mrToken
-            projectId = "${modrinth_id}"
-            minecraftVersions.add(minecraft_version)
-            requires("create")
-            optional("jei","observable")
-        }
-    }
-}
-
-
+apply from: rootProject.file('gradle/cec-publishing.gradle')
 
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.

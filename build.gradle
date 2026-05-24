@@ -23,6 +23,8 @@ allprojects {
     }
 }
 
+apply from: rootProject.file('gradle/cec-publishing-root.gradle')
+
 def versionProjects = [
         ':forge-1.19.2-0.5.1i',
         ':forge-1.20.1-0.5.1j',
@@ -38,12 +40,6 @@ tasks.register('compileJavaAllVersions') {
 
 tasks.register('jarAllVersions') {
     group = 'build'
-    description = 'Builds jars for every supported Create Entity Control version subproject.'
-    dependsOn versionProjects.collect { "${it}:jar" }
-}
-
-tasks.register('publishAllVersions') {
-    group = 'publishing'
-    description = 'Runs each version subproject publishAll task.'
-    dependsOn versionProjects.collect { "${it}:publishAll" }
+    description = 'Alias for packageAllVersions; builds final publishable jars for every supported version.'
+    dependsOn 'packageAllVersions'
 }

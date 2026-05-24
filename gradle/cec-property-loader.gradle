@@ -1,0 +1,44 @@
+import org.codehaus.groovy.runtime.MethodClosure
+
+def loadGradleProperties(File propertyFile) {
+    if (propertyFile == null || !propertyFile.exists()) {
+        return
+    }
+    Properties properties = new Properties()
+    propertyFile.withInputStream { input ->
+        properties.load(input)
+    }
+    properties.each { key, value ->
+        String propertyName = key.toString()
+        if (!project.hasProperty(propertyName)) {
+            project.ext.set(propertyName, value)
+        }
+    }
+}
+
+def findSharedGradleProperties() {
+    File currentDir = project.projectDir
+    while (currentDir != null) {
+        File candidate = new File(currentDir, 'gradle/cec-common.properties')
+        if (candidate.exists()) {
+            return candidate
+        }
+        currentDir = currentDir.parentFile
+    }
+    return null
+}
+
+loadGradleProperties(findSharedGradleProperties())
+loadGradleProperties(project.file('gradle.properties'))
+
+if (!project.hasProperty('mod_version')) {
+    def baseVersion = project.findProperty('mod_base_version')?.toString()?.trim()
+    def versionSuffix = project.findProperty('mod_version_suffix')?.toString()?.trim()
+    if (baseVersion != null && !baseVersion.isEmpty()) {
+        project.ext.set('mod_version', versionSuffix ? "${baseVersion}-${versionSuffix}" : baseVersion)
+    }
+}
+
+ext {
+    loadGradleProperties = this.&loadGradleProperties as MethodClosure
+}
