@@ -1,5 +1,7 @@
 package com.Pink_Cats.createentitycontrol.command;
 
+import com.Pink_Cats.createentitycontrol.mixin.ControlledContraptionEntityAccessor;
+import com.Pink_Cats.createentitycontrol.platform.CommandSourceStackCompat;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
@@ -8,7 +10,6 @@ import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
 import com.simibubi.create.content.contraptions.gantry.GantryContraption;
 import com.simibubi.create.content.contraptions.gantry.GantryContraptionEntity;
 import com.simibubi.create.content.trains.entity.CarriageContraptionEntity;
-import com.Pink_Cats.createentitycontrol.mixin.ControlledContraptionEntityAccessor;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
@@ -20,8 +21,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.Map;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -124,7 +125,11 @@ public final class BlockifyContraptionCommand {
 
         PENDING_CONFIRMATIONS.remove(player.getUUID());
         contraptionEntity.disassemble();
-        source.sendSuccess(buildContraptionMessage("command.createentitycontrol.blockify.success", contraptionEntity), true);
+        CommandSourceStackCompat.sendSuccess(
+                source,
+                () -> buildContraptionMessage("command.createentitycontrol.blockify.success", contraptionEntity),
+                true
+        );
         return 1;
     }
 
@@ -142,7 +147,11 @@ public final class BlockifyContraptionCommand {
             return 0;
         }
 
-        source.sendSuccess(Component.translatable("command.createentitycontrol.blockify.cancelled"), false);
+        CommandSourceStackCompat.sendSuccess(
+                source,
+                () -> Component.translatable("command.createentitycontrol.blockify.cancelled"),
+                false
+        );
         return 1;
     }
 
