@@ -10,40 +10,28 @@ import com.mojang.logging.LogUtils;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.api.contraption.BlockMovementChecks;
 import com.simibubi.create.content.contraptions.*;
-import com.simibubi.create.content.contraptions.actors.seat.SeatBlock;
-import com.simibubi.create.content.contraptions.bearing.WindmillBearingBlockEntity;
-import com.simibubi.create.content.contraptions.chassis.AbstractChassisBlock;
-import com.simibubi.create.content.contraptions.chassis.StickerBlock;
 import com.simibubi.create.content.contraptions.glue.SuperGlueEntity;
-import com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock;
 import com.simibubi.create.content.contraptions.pulley.PulleyBlock;
 import com.simibubi.create.content.contraptions.pulley.PulleyBlockEntity;
 import com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock;
-import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity;
 import com.simibubi.create.content.kinetics.simpleRelays.ShaftBlock;
-import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
 import com.simibubi.create.foundation.blockEntity.IMultiBlockEntityContainer;
 import com.simibubi.create.infrastructure.config.AllConfigs;
-import org.jetbrains.annotations.Nullable;
 import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.data.UniqueLinkedList;
 import net.createmod.catnip.nbt.NBTProcessors;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.tuple.Pair;
@@ -54,47 +42,22 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 import static com.Pink_Cats.createentitycontrol.addition.StructureBlockStorage.generateRandomUUID;
-import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isExtensionPole;
-import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isPistonHead;
 
 @Mixin(value = Contraption.class,remap = false)
 public class ContraptionMixin {
 
-    @Shadow
-    protected boolean addToInitialFrontier(Level world, BlockPos pos, Direction forcedDirection,
-                                           Queue<BlockPos> frontier) {
-        return true;
-    }
-    @Shadow
-    protected boolean movementAllowed(BlockState state, Level world, BlockPos pos) {
-        return false;
-    }
-    @Shadow
-    protected boolean isAnchoringBlockAt(BlockPos pos) {
-        return pos.equals(anchor);
-    }
-    @Shadow
-    private boolean moveChassis(Level world, BlockPos pos, Direction movementDirection, Queue<BlockPos> frontier,
-                                Set<BlockPos> visited) {return false;}
-
-    @Shadow  public AABB bounds;
     @Shadow  protected Map<BlockPos, StructureTemplate.StructureBlockInfo> blocks;
-    @Shadow  public BlockPos anchor;
-    @Shadow  private Map<BlockPos, Entity> initialPassengers;
-    @Shadow  private Set<SuperGlueEntity> glueToRemove;
 	@Shadow  protected List<AABB> superglue;
 	@Shadow  public boolean disassembled;
     @Shadow  protected void addBlock(Level level, BlockPos pos, Pair<StructureTemplate.StructureBlockInfo, BlockEntity> pair) {}
-    @Shadow  private void moveBelt(BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited, BlockState state) {}
 	@Shadow  protected Multimap<BlockPos, StructureTemplate.StructureBlockInfo> capturedMultiblocks;
 	@Shadow  protected MountedStorageManager storage;
 
@@ -108,41 +71,6 @@ public class ContraptionMixin {
 	}
 	@Shadow
 	protected void translateMultiblockControllers(StructureTransform transform) {}
-    @Shadow
-    protected Pair<StructureTemplate.StructureBlockInfo, BlockEntity> capture(Level world, BlockPos pos) {
-        return null;
-    }
-    @Shadow
-    protected void moveGantryPinion(Level world, BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited,
-                                    BlockState state) {}
-    @Shadow
-    protected void moveGantryShaft(Level world, BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited,
-                                   BlockState state) {}
-    @Shadow
-    private void moveBearing(BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited, BlockState state) {}
-    @Shadow
-    private void moveWindmillBearing(BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited, BlockState state) {}
-    @Shadow
-    private void moveSeat(Level world, BlockPos pos) {}
-    @Shadow
-    private void movePulley(Level world, BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited) {}
-    @Shadow
-    private boolean moveMechanicalPiston(Level world, BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited,
-                                         BlockState state) {return true;}
-    @Shadow
-    protected void movePistonPole(Level world, BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited,
-                                  BlockState state) {}
-    @Shadow
-    protected void movePistonHead(Level world, BlockPos pos, Queue<BlockPos> frontier, Set<BlockPos> visited,
-                                  BlockState state) {}
-	@Shadow
-	protected boolean customBlockRemoval(LevelAccessor world, BlockPos pos, BlockState state) {
-		return false;
-	}
-
-	@Shadow
-	protected boolean moveBlock(Level world, @javax.annotation.Nullable Direction forcedDirection, Queue<BlockPos> frontier,
-								Set<BlockPos> visited) {return false;}
 
 	@Unique
 	Map<String, Integer> blockCountMap_r = new HashMap<>();
@@ -154,65 +82,37 @@ public class ContraptionMixin {
 	@Unique
 	private static final Logger createentitycontroller$LOGGER = LogUtils.getLogger();
 
-    /*@Shadow
-    protected boolean moveBlock(Level world, @javax.annotation.Nullable Direction forcedDirection, Queue<BlockPos> frontier,
-                                Set<BlockPos> visited) throws AssemblyException {return true;}*/
 
 
 
-	@Inject(
-			method = "searchMovedStructure",
-			at = @At("HEAD"), // 在方法开始时执行
-			cancellable = true // 可选：如果需要可以取消原方法的执行
-	)
-	public void injectSearchMovedStructure(Level world, BlockPos pos, Direction forcedDirection, CallbackInfoReturnable<Boolean> cir) throws AssemblyException {
-		initialPassengers.clear();
-		// LOGGER.error("searchMovedStructure");
-
-		Queue<BlockPos> frontier = new UniqueLinkedList<>();
-		Set<BlockPos> visited = new HashSet<>();
-		anchor = pos;
-
-		if (bounds == null)
-			bounds = new AABB(BlockPos.ZERO);
-
-		if (!BlockMovementChecks.isBrittle(world.getBlockState(pos)))
-			frontier.add(pos);
-
-		if (!addToInitialFrontier(world, pos, forcedDirection, frontier)) {
-            cir.setReturnValue(false);
-			return; // 直接返回，继续执行原方法
-        }
-
-		for (int limit = 100000; limit > 0; limit--) {
-			if (frontier.isEmpty()) {
-				if (Config.enableBlockEntityExperimentPara) {
-					int totalValue = createentitycontroller$getTotalStabilizeValue();
-
-					int globalCount = 0;
-					for (Integer count : blockCountMap_r.values()) {
-						globalCount += count;
-					}
-					System.setProperty("globalValue", Integer.toString(totalValue));
-					System.setProperty("globalCount", Integer.toString(globalCount));
-
-
-					if (totalValue > Config.block_entity_max_stabilize_count) {
-						throw AssemblyException.structureTooLarge();
-					}
-				}
-				cir.setReturnValue(true); // 返回 true，结束执行
-				return;
-			}
-			if (!moveBlock(world, forcedDirection, frontier, visited)) {
-				cir.setReturnValue(false); // 返回 false，结束执行
-				return;
-			}
-		}
-		throw AssemblyException.structureTooLarge();
+	@Inject(method = "searchMovedStructure", at = @At("HEAD"))
+	public void createentitycontroller$resetSearchMovedStructureState(Level world, BlockPos pos, Direction forcedDirection,
+																   CallbackInfoReturnable<Boolean> cir) {
+		blockCountMap_r.clear();
+		createentitycontroller$minPos = new BlockPos(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+		createentitycontroller$maxPos = new BlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 	}
 
+	@Inject(method = "searchMovedStructure", at = @At("RETURN"))
+	public void createentitycontroller$validateSearchMovedStructureStability(Level world, BlockPos pos,
+																	 Direction forcedDirection,
+																	 CallbackInfoReturnable<Boolean> cir) throws AssemblyException {
+		if (!Boolean.TRUE.equals(cir.getReturnValue()) || !Config.enableBlockEntityExperimentPara) {
+			return;
+		}
 
+		int totalValue = createentitycontroller$getTotalStabilizeValue();
+		int globalCount = 0;
+		for (Integer count : blockCountMap_r.values()) {
+			globalCount += count;
+		}
+		System.setProperty("globalValue", Integer.toString(totalValue));
+		System.setProperty("globalCount", Integer.toString(globalCount));
+
+		if (totalValue > Config.block_entity_max_stabilize_count) {
+			throw AssemblyException.structureTooLarge();
+		}
+	}
 
 	@Unique
 	private int createentitycontroller$getTotalStabilizeValue() {
@@ -222,17 +122,15 @@ public class ContraptionMixin {
 			String blockType = entry.getKey();
 			Integer blockCount = entry.getValue();
 
-			// 在 blocksLimitValues 中查找匹配的方块
 			boolean found = false;
 			for (List<Object> limitValue : Config.blocksLimitValues) {
 				if (limitValue.size() > 1 && limitValue.get(0).equals(blockType)) {
-					totalValue += blockCount * ((Integer) limitValue.get(2)); // 使用 limitValue 的第二个值
+					totalValue += blockCount * ((Integer) limitValue.get(2));
 					found = true;
 					break;
 				}
 			}
 
-			// 如果方块不在 blocksLimitValues 中，使用默认值
 			if (!found) {
 				totalValue += blockCount * defaultValue;
 			}
@@ -240,247 +138,64 @@ public class ContraptionMixin {
 		return totalValue;
 	}
 
-	@Inject(method = "moveBlock", at = @At("HEAD"), cancellable = true)
-	protected void injectMoveBlock(Level world, @Nullable Direction forcedDirection, Queue<BlockPos> frontier,
-								   Set<BlockPos> visited, CallbackInfoReturnable<Boolean> cir) throws AssemblyException {
-		BlockPos pos = frontier.poll();
+	@Redirect(
+			method = "moveBlock",
+			at = @At(value = "INVOKE",
+					target = "Lcom/simibubi/create/content/contraptions/Contraption;addBlock(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lorg/apache/commons/lang3/tuple/Pair;)V")
+	)
+	protected void createentitycontroller$addBlockWithLimits(Contraption instance, Level world, BlockPos pos,
+																  Pair<StructureTemplate.StructureBlockInfo, BlockEntity> pair)
+			throws AssemblyException {
+		addBlock(world, pos, pair);
+		if (blocks.size() > AllConfigs.server().kinetics.maxBlocksMoved.get()) {
+			return;
+		}
+		createentitycontroller$validateMovedBlockLimits(pos, pair.getLeft().state());
+	}
 
-		if (pos == null) {
-			cir.setReturnValue(false);
-			return;
-		}
-		visited.add(pos);
-
-		if (world.isOutsideBuildHeight(pos)) {
-			cir.setReturnValue(true);
-			return;
-		}
-		if (!world.isLoaded(pos)) {
-			throw AssemblyException.unloadedChunk(pos );
-		}
-		if (isAnchoringBlockAt(pos)) {
-			cir.setReturnValue(true);
-			return;
-		}
-		BlockState state = world.getBlockState(pos);
-		if (!BlockMovementChecks.isMovementNecessary(state, world, pos)) {
-			cir.setReturnValue(true);
-			return;
-		}
-		if (!movementAllowed(state, world, pos)) {
+	@Unique
+	private void createentitycontroller$validateMovedBlockLimits(BlockPos pos, BlockState state) throws AssemblyException {
+		String blockName = state.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
+		if (Config.blocks_unmoved.stream().anyMatch(blockName::equals)) {
+			EntityEnrollment.setControlStatus(8);
 			throw AssemblyException.unmovableBlock(pos, state);
 		}
-		if (state.getBlock() instanceof AbstractChassisBlock
-				&& !moveChassis(world, pos, forcedDirection, frontier, visited)) {
-			cir.setReturnValue(false);
-			return;
-		}
 
-		if (AllBlocks.BELT.has(state)) {
-			moveBelt(pos, frontier, visited, state);
-		}
-
-		if (AllBlocks.WINDMILL_BEARING.has(state) && world.getBlockEntity(pos) instanceof WindmillBearingBlockEntity wbbe) {
-			wbbe.disassembleForMovement();
-		}
-
-		if (AllBlocks.GANTRY_CARRIAGE.has(state)) {
-			moveGantryPinion(world, pos, frontier, visited, state);
-		}
-
-		if (AllBlocks.GANTRY_SHAFT.has(state)) {
-			moveGantryShaft(world, pos, frontier, visited, state);
-		}
-
-		if (AllBlocks.STICKER.has(state) && state.getValue(StickerBlock.EXTENDED)) {
-			Direction offset = state.getValue(StickerBlock.FACING);
-			BlockPos attached = pos.relative(offset);
-			if (!visited.contains(attached)
-					&& !BlockMovementChecks.isNotSupportive(world.getBlockState(attached), offset.getOpposite())) {
-				frontier.add(attached);
-			}
-		}
-
-		if (world.getBlockEntity(pos) instanceof ChainConveyorBlockEntity ccbe) {
-			ccbe.notifyConnectedToValidate();
-		}
-
-		// Double Chest halves stick together
-		if (state.hasProperty(ChestBlock.TYPE) && state.hasProperty(ChestBlock.FACING)
-				&& state.getValue(ChestBlock.TYPE) != ChestType.SINGLE) {
-			Direction offset = ChestBlock.getConnectedDirection(state);
-			BlockPos attached = pos.relative(offset);
-			if (!visited.contains(attached)) {
-				frontier.add(attached);
-			}
-		}
-
-		// Bogeys tend to have sticky sides
-		if (state.getBlock() instanceof AbstractBogeyBlock<?> bogey) {
-			for (Direction d : bogey.getStickySurfaces(world, pos, state)) {
-				if (!visited.contains(pos.relative(d))) {
-					frontier.add(pos.relative(d));
+		blockCountMap_r.put(blockName, blockCountMap_r.getOrDefault(blockName, 0) + 1);
+		for (List<Object> entry : Config.blocksLimitValues) {
+			String limitBlockName = (String) entry.get(0);
+			int allowedCount = (Integer) entry.get(1);
+			int currentCount = blockCountMap_r.getOrDefault(limitBlockName, 0);
+			if (currentCount > allowedCount) {
+				if (Config.debug_block_entity_problem) {
+					createentitycontroller$LOGGER.info("{} count: {} allowed: {}", limitBlockName, currentCount, allowedCount);
 				}
-			}
-		}
-
-		// Bearings potentially create stabilized sub-contraptions
-		if (AllBlocks.MECHANICAL_BEARING.has(state)) {
-			moveBearing(pos, frontier, visited, state);
-		}
-
-		// WM Bearings attach their structure when moved
-		if (AllBlocks.WINDMILL_BEARING.has(state)) {
-			moveWindmillBearing(pos, frontier, visited, state);
-		}
-
-		// Seats transfer their passenger to the contraption
-		if (state.getBlock() instanceof SeatBlock) {
-			moveSeat(world, pos);
-		}
-
-		// Pulleys drag their rope and their attached structure
-		if (state.getBlock() instanceof PulleyBlock) {
-			movePulley(world, pos, frontier, visited);
-		}
-
-		// Pistons drag their attaches poles and extension
-		if (state.getBlock() instanceof MechanicalPistonBlock) {
-			if (!moveMechanicalPiston(world, pos, frontier, visited, state)) {
-				cir.setReturnValue(false);
-				return;
-			}
-		}
-		if (isExtensionPole(state)) {
-			movePistonPole(world, pos, frontier, visited, state);
-		}
-		if (isPistonHead(state)) {
-			movePistonHead(world, pos, frontier, visited, state);
-		}
-
-		// Cart assemblers attach themselves
-		BlockPos posDown = pos.below();
-		BlockState stateBelow = world.getBlockState(posDown);
-		if (!visited.contains(posDown) && AllBlocks.CART_ASSEMBLER.has(stateBelow)) {
-			frontier.add(posDown);
-		}
-
-		// Slime blocks and super glue drag adjacent blocks if possible
-		for (Direction offset : Iterate.directions) {
-			BlockPos offsetPos = pos.relative(offset);
-			BlockState blockState = world.getBlockState(offsetPos);
-			if (isAnchoringBlockAt(offsetPos)) {
-				continue;
-			}
-			if (!movementAllowed(blockState, world, offsetPos)) {
-				if (offset == forcedDirection) {
-					throw AssemblyException.unmovableBlock(pos, state);
-				}
-				continue;
-			}
-
-			boolean wasVisited = visited.contains(offsetPos);
-			boolean faceHasGlue = SuperGlueEntity.isGlued(world, pos, offset, glueToRemove);
-			boolean blockAttachedTowardsFace =
-					BlockMovementChecks.isBlockAttachedTowards(blockState, world, offsetPos, offset.getOpposite());
-			boolean brittle = BlockMovementChecks.isBrittle(blockState);
-			boolean canStick = !brittle && state.canStickTo(blockState) && blockState.canStickTo(state);
-			if (canStick) {
-				if (state.getPistonPushReaction() == PushReaction.PUSH_ONLY
-						|| blockState.getPistonPushReaction() == PushReaction.PUSH_ONLY) {
-					canStick = false;
-				}
-				if (BlockMovementChecks.isNotSupportive(state, offset)) {
-					canStick = false;
-				}
-				if (BlockMovementChecks.isNotSupportive(blockState, offset.getOpposite())) {
-					canStick = false;
-				}
-			}
-
-			if (!wasVisited && (canStick || blockAttachedTowardsFace || faceHasGlue
-					|| (offset == forcedDirection && !BlockMovementChecks.isNotSupportive(state, forcedDirection)))) {
-				frontier.add(offsetPos);
-			}
-		}
-
-		addBlock(world, pos, capture(world, pos));
-		if (blocks.size() <= AllConfigs.server().kinetics.maxBlocksMoved.get()) {
-			BlockState blockState = world.getBlockState(pos); // 获取方块状态
-			String blockStateString = blockState.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
-			if (Config.blocks_unmoved.stream().anyMatch(blockStateString::equals)) {
-                EntityEnrollment.setControlStatus(8);
-                throw AssemblyException.unmovableBlock(pos, state);
-
-			}
-
-			// count
-			String blockString = blockState.toString();
-			Pattern pattern = Pattern.compile("Block\\{(.*?)}");
-			Matcher matcher = pattern.matcher(blockString);
-			if (matcher.find()) {
-				String blockName = matcher.group(1); // 提取方块名称
-
-				// 更新字典中的数量
-				blockCountMap_r.put(blockName, blockCountMap_r.getOrDefault(blockName, 0) + 1);
-			}
-			for (List<Object> entry : Config.blocksLimitValues) {
-				// 解析条目
-				String blockName = (String) entry.get(0); // 获取方块名称
-				int allowedCount = (Integer) entry.get(1); // 获取允许的数量
-				// 获取当前方块数量
-				int currentCount = blockCountMap_r.getOrDefault(blockName, 0);
-				// 检查是否超过允许数量
-				if (currentCount > allowedCount) {
-					// 可以选择抛出异常
-					if (Config.debug_block_entity_problem) {
-                        createentitycontroller$LOGGER.info("{} count: {} allowed: {}", blockName, currentCount, allowedCount);
-					}
-                    EntityEnrollment.setControlStatus(16);
-					throw AssemblyException.unmovableBlock(pos, state);
-				}
-			}
-
-
-			if (pos.getX() < createentitycontroller$minPos.getX()) {
-				createentitycontroller$minPos = new BlockPos(pos.getX(), createentitycontroller$minPos.getY(), createentitycontroller$minPos.getZ());
-			}
-			if (pos.getY() < createentitycontroller$minPos.getY()) {
-				createentitycontroller$minPos = new BlockPos(createentitycontroller$minPos.getX(), pos.getY(), createentitycontroller$minPos.getZ());
-			}
-			if (pos.getZ() < createentitycontroller$minPos.getZ()) {
-				createentitycontroller$minPos = new BlockPos(createentitycontroller$minPos.getX(), createentitycontroller$minPos.getY(), pos.getZ());
-			}
-			// 更新最大坐标
-			if (pos.getX() > createentitycontroller$maxPos.getX()) {
-				createentitycontroller$maxPos = new BlockPos(pos.getX(), createentitycontroller$maxPos.getY(), createentitycontroller$maxPos.getZ());
-			}
-			if (pos.getY() > createentitycontroller$maxPos.getY()) {
-				createentitycontroller$maxPos = new BlockPos(createentitycontroller$maxPos.getX(), pos.getY(), createentitycontroller$maxPos.getZ());
-			}
-			if (pos.getZ() > createentitycontroller$maxPos.getZ()) {
-				createentitycontroller$maxPos = new BlockPos(createentitycontroller$maxPos.getX(), createentitycontroller$maxPos.getY(), pos.getZ());
-			}
-
-			// System.out.println("maxPos: " + maxPos +", minPos: " + minPos);
-			if ((createentitycontroller$maxPos.getX() - createentitycontroller$minPos.getX()) > Config.blockEntityXZMaxLength) {
-                EntityEnrollment.setControlStatus(32);
+				EntityEnrollment.setControlStatus(16);
 				throw AssemblyException.unmovableBlock(pos, state);
 			}
-			if ((createentitycontroller$maxPos.getY() - createentitycontroller$minPos.getY()) > Config.blockEntityYMaxLength) {
-                EntityEnrollment.setControlStatus(32);
-				throw AssemblyException.unmovableBlock(pos, state);
-			}
-			if ((createentitycontroller$maxPos.getZ() - createentitycontroller$minPos.getZ()) > Config.blockEntityXZMaxLength) {
-                EntityEnrollment.setControlStatus(32);
-				throw AssemblyException.unmovableBlock(pos, state);
-			}
-
-            cir.cancel();
-			cir.setReturnValue(true);
-        } else {
-			throw AssemblyException.structureTooLarge();
 		}
+
+		createentitycontroller$expandMovedBlockBounds(pos);
+		if ((createentitycontroller$maxPos.getX() - createentitycontroller$minPos.getX()) > Config.blockEntityXZMaxLength
+				|| (createentitycontroller$maxPos.getY() - createentitycontroller$minPos.getY()) > Config.blockEntityYMaxLength
+				|| (createentitycontroller$maxPos.getZ() - createentitycontroller$minPos.getZ()) > Config.blockEntityXZMaxLength) {
+			EntityEnrollment.setControlStatus(32);
+			throw AssemblyException.unmovableBlock(pos, state);
+		}
+	}
+
+	@Unique
+	private void createentitycontroller$expandMovedBlockBounds(BlockPos pos) {
+		createentitycontroller$minPos = new BlockPos(
+				Math.min(pos.getX(), createentitycontroller$minPos.getX()),
+				Math.min(pos.getY(), createentitycontroller$minPos.getY()),
+				Math.min(pos.getZ(), createentitycontroller$minPos.getZ())
+		);
+		createentitycontroller$maxPos = new BlockPos(
+				Math.max(pos.getX(), createentitycontroller$maxPos.getX()),
+				Math.max(pos.getY(), createentitycontroller$maxPos.getY()),
+				Math.max(pos.getZ(), createentitycontroller$maxPos.getZ())
+		);
 	}
 
 	/**
