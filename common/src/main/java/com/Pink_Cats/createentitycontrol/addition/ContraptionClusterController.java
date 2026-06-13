@@ -1,32 +1,29 @@
 package com.Pink_Cats.createentitycontrol.addition;
 
 import com.Pink_Cats.createentitycontrol.Config;
-import com.Pink_Cats.createentitycontrol.network.ClusterBlockedSyncPacket;
-import com.Pink_Cats.createentitycontrol.network.CreateEntityControlNetwork;
+import com.Pink_Cats.createentitycontrol.platform.ContraptionClusterPlatform;
+import com.Pink_Cats.createentitycontrol.platform.StructureBlockInfoCompat;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
+import com.simibubi.create.infrastructure.config.AllConfigs;
 import com.simibubi.create.content.trains.entity.Carriage;
 import com.simibubi.create.content.trains.entity.CarriageContraptionEntity;
 import com.simibubi.create.content.trains.entity.Train;
 import com.simibubi.create.content.trains.entity.TravellingPoint;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.core.BlockPos;
-import com.simibubi.create.infrastructure.config.AllConfigs;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.neoforged.neoforge.network.PacketDistributor;
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -49,14 +46,20 @@ public final class ContraptionClusterController {
     private static final Map<String, Long> GLOBAL_NOTIFY_UNTIL = new HashMap<>();
     private static long nextCleanupTick = Long.MIN_VALUE;
 
-    private ContraptionClusterController() {}
+    private ContraptionClusterController() {
+    }
 
     public static void tick(AbstractContraptionEntity entity) {
-        if (entity == null || entity.level().isClientSide || !entity.isAlive() || isExcluded(entity)) {
+        if (entity == null || !entity.isAlive() || isExcluded(entity)) {
             return;
         }
 
-        long gameTime = entity.level().getGameTime();
+        Level level = ContraptionClusterPlatform.level(entity);
+        if (level.isClientSide) {
+            return;
+        }
+
+        long gameTime = level.getGameTime();
         cleanup(gameTime);
 
         Long blockedUntil = BLOCKED_UNTIL.get(entity.getUUID());
@@ -160,7 +163,7 @@ public final class ContraptionClusterController {
             }
 
             AABB searchBox = current.getBoundingBox().inflate(Config.contraption_cluster_scan_radius);
-            List<AbstractContraptionEntity> nearby = current.level().getEntitiesOfClass(
+            List<AbstractContraptionEntity> nearby = ContraptionClusterPlatform.level(current).getEntitiesOfClass(
                     AbstractContraptionEntity.class,
                     searchBox,
                     other -> other != current && other.isAlive() && !isExcluded(other)
@@ -234,7 +237,7 @@ public final class ContraptionClusterController {
             if (actualCount > clusterAllowedCount) {
                 return new ClusterLimitViolation(
                         "message.createentitycontrol.cluster_blocked.reason.block_limit",
-                        describeLimitSelector(selector, stats.blockCounts),
+                        BlockSelectorDetails.describeLimitSelector(selector, stats.blockCounts, ContraptionClusterController::translateBlockName),
                         Integer.toString(actualCount),
                         Integer.toString(clusterAllowedCount)
                 );
@@ -356,7 +359,7 @@ public final class ContraptionClusterController {
             ));
 
             AABB notifyBox = new AABB(center, center).inflate(Config.contraption_cluster_local_notify_radius);
-            for (ServerPlayer player : sample.level().getEntitiesOfClass(ServerPlayer.class, notifyBox, ServerPlayer::isAlive)) {
+            for (ServerPlayer player : ContraptionClusterPlatform.level(sample).getEntitiesOfClass(ServerPlayer.class, notifyBox, ServerPlayer::isAlive)) {
                 if (isLookingAtCluster(player, cluster)) {
                     continue;
                 }
@@ -366,7 +369,7 @@ public final class ContraptionClusterController {
 
         syncOverlay(cluster, violation, location, sample);
 
-        MinecraftServer server = sample.level().getServer();
+        MinecraftServer server = ContraptionClusterPlatform.level(sample).getServer();
         if (server == null) {
             return;
         }
@@ -426,15 +429,9 @@ public final class ContraptionClusterController {
             entityIds.add(entity.getId());
         }
 
-        ClusterBlockedSyncPacket packet = new ClusterBlockedSyncPacket(
-                entityIds,
-                Component.translatable(violation.translationKey, violation.arguments),
-                location,
-                OVERLAY_SYNC_DURATION
-        );
-
-        for (ServerPlayer player : sample.level().getEntitiesOfClass(ServerPlayer.class, notifyBox, ServerPlayer::isAlive)) {
-            PacketDistributor.sendToPlayer(player, packet);
+        Component reason = Component.translatable(violation.translationKey, violation.arguments);
+        for (ServerPlayer player : ContraptionClusterPlatform.level(sample).getEntitiesOfClass(ServerPlayer.class, notifyBox, ServerPlayer::isAlive)) {
+            ContraptionClusterPlatform.sendClusterBlocked(player, entityIds, reason, location, OVERLAY_SYNC_DURATION);
         }
     }
 
@@ -466,64 +463,11 @@ public final class ContraptionClusterController {
     }
 
     private static String extractBlockName(StructureTemplate.StructureBlockInfo blockInfo) {
-        return Config.blockName(blockInfo.state());
+        return Config.blockName(StructureBlockInfoCompat.state(blockInfo));
     }
 
     private static Component translateBlockName(String selector) {
-        if (selector.startsWith("#")) {
-            return Component.literal(selector);
-        }
-
-        ResourceLocation id = ResourceLocation.tryParse(selector);
-        if (id == null) {
-            return Component.literal(selector);
-        }
-
-        Block block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null);
-        if (block == null) {
-            return Component.literal(selector);
-        }
-
-        return block.getName();
-    }
-
-    private static Component describeLimitSelector(String selector, Map<String, Integer> blockCounts) {
-        if (!selector.startsWith("#")) {
-            return translateBlockName(selector);
-        }
-
-        List<Map.Entry<String, Integer>> matches = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : blockCounts.entrySet()) {
-            if (Config.matchesBlockSelector(selector, entry.getKey())) {
-                matches.add(entry);
-            }
-        }
-        matches.sort((a, b) -> {
-            int countCompare = Integer.compare(b.getValue(), a.getValue());
-            return countCompare != 0 ? countCompare : a.getKey().compareTo(b.getKey());
-        });
-
-        MutableComponent result = Component.literal(selector);
-        if (matches.isEmpty()) {
-            return result;
-        }
-
-        result.append(Component.literal(": "));
-        int shown = Math.min(matches.size(), 5);
-        for (int i = 0; i < shown; i++) {
-            if (i > 0) {
-                result.append(Component.literal(", "));
-            }
-            Map.Entry<String, Integer> entry = matches.get(i);
-            MutableComponent item = Component.literal("");
-            item.append(translateBlockName(entry.getKey()));
-            item.append(Component.literal(" x" + entry.getValue()));
-            result.append(item);
-        }
-        if (matches.size() > shown) {
-            result.append(Component.literal(", +" + (matches.size() - shown)));
-        }
-        return result;
+        return ContraptionClusterPlatform.translateBlockName(selector);
     }
 
     private static Component buildLocationComponent(ClusterStats stats, AbstractContraptionEntity sample) {
@@ -533,7 +477,7 @@ public final class ContraptionClusterController {
                 (int) Math.floor(center.y),
                 (int) Math.floor(center.z)
         );
-        String dimension = sample.level().dimension().location().toString();
+        String dimension = ContraptionClusterPlatform.level(sample).dimension().location().toString();
         return Component.translatable(
                 "message.createentitycontrol.cluster_blocked.location",
                 pos.getX(),
@@ -573,7 +517,7 @@ public final class ContraptionClusterController {
     private static Component buildNearbyPlayersComponent(ClusterStats stats, AbstractContraptionEntity sample) {
         Vec3 center = stats.center();
         AABB searchBox = new AABB(center, center).inflate(Config.contraption_cluster_global_nearby_players_radius);
-        List<ServerPlayer> players = sample.level().getEntitiesOfClass(ServerPlayer.class, searchBox, ServerPlayer::isAlive);
+        List<ServerPlayer> players = ContraptionClusterPlatform.level(sample).getEntitiesOfClass(ServerPlayer.class, searchBox, ServerPlayer::isAlive);
         if (players.isEmpty()) {
             return Component.translatable("message.createentitycontrol.cluster_blocked.global.players.none");
         }
@@ -594,21 +538,21 @@ public final class ContraptionClusterController {
                                 double minY, double minZ, double maxX, double maxY, double maxZ) {
 
         private int spanX() {
-                return (int) Math.ceil(maxX - minX);
-            }
-
-            private int spanY() {
-                return (int) Math.ceil(maxY - minY);
-            }
-
-            private int spanZ() {
-                return (int) Math.ceil(maxZ - minZ);
-            }
-
-            private Vec3 center() {
-                return new Vec3((minX + maxX) / 2.0D, (minY + maxY) / 2.0D, (minZ + maxZ) / 2.0D);
-            }
+            return (int) Math.ceil(maxX - minX);
         }
+
+        private int spanY() {
+            return (int) Math.ceil(maxY - minY);
+        }
+
+        private int spanZ() {
+            return (int) Math.ceil(maxZ - minZ);
+        }
+
+        private Vec3 center() {
+            return new Vec3((minX + maxX) / 2.0D, (minY + maxY) / 2.0D, (minZ + maxZ) / 2.0D);
+        }
+    }
 
     private record ClusterLimitViolation(String translationKey, Object... arguments) {
     }
