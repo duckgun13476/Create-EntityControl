@@ -31,6 +31,16 @@ if (System.getProperty('idea.sync.active') == 'true') {
     System.setProperty('idea.sync.active', 'false')
 }
 
+def cecAutoOfflineForgeRuns = providers.gradleProperty('cec.autoOfflineForgeRuns')
+        .map { it.toBoolean() }
+        .orElse(true)
+        .get()
+if (cecAutoOfflineForgeRuns && gradle.startParameter.taskNames.any { taskName ->
+    taskName.startsWith(':forge-') && (taskName.endsWith(':runClient') || taskName.endsWith(':prepareClientRun'))
+}) {
+    gradle.startParameter.offline = true
+}
+
 rootProject.name = 'CreateEntityControl'
 
 include 'forge-1.19.2-0.5.1i'
