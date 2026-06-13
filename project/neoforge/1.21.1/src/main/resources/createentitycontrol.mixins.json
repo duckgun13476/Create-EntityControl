@@ -10,7 +10,6 @@
     "AssemblyExceptionMixin",
     "ContraptionMixin",
     "ControlledContraptionEntityAccessor",
-    "DeployerHandlerMixin",
     "EntityMixin",
     "MechanicalBearingBlockEntityMixin",
     "StructureCheckMixin"
