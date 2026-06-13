@@ -245,7 +245,7 @@ public final class ContraptionClusterController {
             if (actualCount > clusterAllowedCount) {
                 return new ClusterLimitViolation(
                         "message.createentitycontrol.cluster_blocked.reason.block_limit",
-                        translateBlockName(selector),
+                        describeLimitSelector(selector, stats.blockCounts),
                         Integer.toString(actualCount),
                         Integer.toString(clusterAllowedCount)
                 );
@@ -496,6 +496,45 @@ public final class ContraptionClusterController {
         }
 
         return block.getName();
+    }
+
+    private static Component describeLimitSelector(String selector, Map<String, Integer> blockCounts) {
+        if (!selector.startsWith("#")) {
+            return translateBlockName(selector);
+        }
+
+        List<Map.Entry<String, Integer>> matches = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : blockCounts.entrySet()) {
+            if (Config.matchesBlockSelector(selector, entry.getKey())) {
+                matches.add(entry);
+            }
+        }
+        matches.sort((a, b) -> {
+            int countCompare = Integer.compare(b.getValue(), a.getValue());
+            return countCompare != 0 ? countCompare : a.getKey().compareTo(b.getKey());
+        });
+
+        MutableComponent result = Component.literal(selector);
+        if (matches.isEmpty()) {
+            return result;
+        }
+
+        result.append(Component.literal(": "));
+        int shown = Math.min(matches.size(), 5);
+        for (int i = 0; i < shown; i++) {
+            if (i > 0) {
+                result.append(Component.literal(", "));
+            }
+            Map.Entry<String, Integer> entry = matches.get(i);
+            MutableComponent item = Component.literal("");
+            item.append(translateBlockName(entry.getKey()));
+            item.append(Component.literal(" x" + entry.getValue()));
+            result.append(item);
+        }
+        if (matches.size() > shown) {
+            result.append(Component.literal(", +" + (matches.size() - shown)));
+        }
+        return result;
     }
 
     private static Component buildLocationComponent(ClusterStats stats, AbstractContraptionEntity sample) {

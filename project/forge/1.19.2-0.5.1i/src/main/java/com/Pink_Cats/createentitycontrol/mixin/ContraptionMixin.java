@@ -1,6 +1,7 @@
 package com.Pink_Cats.createentitycontrol.mixin;
 
 import com.Pink_Cats.createentitycontrol.Config;
+import com.Pink_Cats.createentitycontrol.addition.AssemblyExceptionHelper;
 import com.Pink_Cats.createentitycontrol.addition.EntityEnrollment;
 import com.Pink_Cats.createentitycontrol.addition.OpacCompatBridge;
 import com.Pink_Cats.createentitycontrol.addition.StructureBlockStorage;
@@ -24,6 +25,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.*;
@@ -46,6 +50,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 
@@ -157,7 +162,8 @@ public class ContraptionMixin {
 					createentitycontrol$LOGGER.info("{} count: {} allowed: {}", selector, currentCount, allowedCount);
 				}
 				EntityEnrollment.setControlStatus(16);
-				throw AssemblyException.unmovableBlock(pos, state);
+				throw AssemblyExceptionHelper.limitSpecialBlock(pos, state,
+						createentitycontrol$describeLimitSelector(selector, blockCountMap_r));
 			}
 		}
 
@@ -168,6 +174,53 @@ public class ContraptionMixin {
 			EntityEnrollment.setControlStatus(32);
 			throw AssemblyException.unmovableBlock(pos, state);
 		}
+	}
+
+	@Unique
+	private Component createentitycontrol$describeLimitSelector(String selector, Map<String, Integer> blockCounts) {
+		if (!selector.startsWith("#")) {
+			return createentitycontrol$translateBlockName(selector);
+		}
+		List<Map.Entry<String, Integer>> matches = new ArrayList<>();
+		for (Map.Entry<String, Integer> entry : blockCounts.entrySet()) {
+			if (Config.matchesBlockSelector(selector, entry.getKey())) {
+				matches.add(entry);
+			}
+		}
+		matches.sort(Comparator.<Map.Entry<String, Integer>>comparingInt(Map.Entry::getValue).reversed()
+				.thenComparing(Map.Entry::getKey));
+
+		MutableComponent details = Component.literal(selector);
+		if (matches.isEmpty()) {
+			return details;
+		}
+		details.append(": ");
+		int shown = Math.min(matches.size(), 5);
+		for (int i = 0; i < shown; i++) {
+			Map.Entry<String, Integer> match = matches.get(i);
+			if (i > 0) {
+				details.append(", ");
+			}
+			details.append(createentitycontrol$translateBlockName(match.getKey()));
+			details.append(Component.literal(" x" + match.getValue()));
+		}
+		if (matches.size() > shown) {
+			details.append(", +" + (matches.size() - shown));
+		}
+		return details;
+	}
+
+	@Unique
+	private Component createentitycontrol$translateBlockName(String selector) {
+		ResourceLocation id = ResourceLocation.tryParse(selector);
+		if (id == null) {
+			return Component.literal(selector);
+		}
+		Block block = ForgeRegistries.BLOCKS.getValue(id);
+		if (block == null) {
+			return Component.literal(selector);
+		}
+		return block.getName();
 	}
 
 	@Unique
