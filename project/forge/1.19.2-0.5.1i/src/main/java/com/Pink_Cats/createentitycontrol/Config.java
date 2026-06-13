@@ -1,6 +1,12 @@
 package com.Pink_Cats.createentitycontrol;
 
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -68,7 +74,7 @@ public class Config {
                                         Arrays.asList("quark:mangrove_chest", 2048, 800),
                                         Arrays.asList("quark:cherry_chest", 2048, 800)
                                 ),
-                        it -> it instanceof List && ((List<?>) it).get(0) instanceof String && ((List<?>) it).get(1) instanceof Number);
+                        Config::validateLimitEntry);
 
     }
 
@@ -271,7 +277,88 @@ public class Config {
 
 
     private static boolean validateItemName(final Object obj) {
-        return obj instanceof final String itemName && ForgeRegistries.BLOCKS.containsKey(new ResourceLocation(itemName));
+        return validateBlockSelector(obj);
+    }
+
+    private static boolean validateLimitEntry(final Object obj) {
+        if (!(obj instanceof List<?> list) || list.size() < 2) {
+            return false;
+        }
+        return validateBlockSelector(list.get(0)) && list.get(1) instanceof Number
+                && (list.size() < 3 || list.get(2) instanceof Number);
+    }
+
+    private static boolean validateBlockSelector(final Object obj) {
+        if (!(obj instanceof String itemName)) {
+            return false;
+        }
+        if (itemName.startsWith("#")) {
+            return ResourceLocation.tryParse(itemName.substring(1)) != null;
+        }
+
+        ResourceLocation id = ResourceLocation.tryParse(itemName);
+        return id != null && ForgeRegistries.BLOCKS.containsKey(id);
+    }
+
+    public static String blockName(BlockState state) {
+        return ForgeRegistries.BLOCKS.getKey(state.getBlock()).toString();
+    }
+
+    public static boolean matchesAnyBlockSelector(Collection<String> selectors, BlockState state) {
+        for (String selector : selectors) {
+            if (matchesBlockSelector(selector, state)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean matchesBlockSelector(String selector, String blockName) {
+        ResourceLocation id = ResourceLocation.tryParse(blockName);
+        if (id == null) {
+            return selector.equals(blockName);
+        }
+        Block block = ForgeRegistries.BLOCKS.getValue(id);
+        return block != null ? matchesBlockSelector(selector, block.defaultBlockState()) : selector.equals(blockName);
+    }
+
+    public static boolean matchesBlockSelector(String selector, BlockState state) {
+        if (selector == null || state == null) {
+            return false;
+        }
+        if (!selector.startsWith("#")) {
+            return selector.equals(blockName(state));
+        }
+
+        ResourceLocation tagId = ResourceLocation.tryParse(selector.substring(1));
+        if (tagId == null) {
+            return false;
+        }
+        if (state.is(TagKey.create(Registry.BLOCK_REGISTRY, tagId))) {
+            return true;
+        }
+
+        Item item = state.getBlock().asItem();
+        return item != Items.AIR && item.builtInRegistryHolder().is(TagKey.create(Registry.ITEM_REGISTRY, tagId));
+    }
+
+    public static int countMatchingBlocks(Map<String, Integer> blockCounts, String selector) {
+        int total = 0;
+        for (Map.Entry<String, Integer> entry : blockCounts.entrySet()) {
+            if (matchesBlockSelector(selector, entry.getKey())) {
+                total += entry.getValue();
+            }
+        }
+        return total;
+    }
+
+    public static int resolveStability(String blockName) {
+        for (List<Object> limitValue : blocksLimitValues) {
+            if (limitValue.size() > 2 && matchesBlockSelector((String) limitValue.get(0), blockName)) {
+                return ((Number) limitValue.get(2)).intValue();
+            }
+        }
+        return 100;
     }
 
     @SubscribeEvent

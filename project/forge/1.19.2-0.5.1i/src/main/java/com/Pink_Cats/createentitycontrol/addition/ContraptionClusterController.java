@@ -238,14 +238,14 @@ public final class ContraptionClusterController {
 
     private static ClusterLimitViolation findLimitViolation(Set<AbstractContraptionEntity> cluster, long gameTime, ClusterStats stats) {
         for (List<Object> limitEntry : Config.blocksLimitValues) {
-            String blockName = (String) limitEntry.get(0);
-            int allowedCount = (Integer) limitEntry.get(1);
+            String selector = (String) limitEntry.get(0);
+            int allowedCount = ((Number) limitEntry.get(1)).intValue();
             int clusterAllowedCount = Math.max(0, (int) Math.floor(allowedCount * Config.contraption_cluster_block_limit_multiplier));
-            int actualCount = stats.blockCounts.getOrDefault(blockName, 0);
+            int actualCount = Config.countMatchingBlocks(stats.blockCounts, selector);
             if (actualCount > clusterAllowedCount) {
                 return new ClusterLimitViolation(
                         "message.createentitycontrol.cluster_blocked.reason.block_limit",
-                        translateBlockName(blockName),
+                        translateBlockName(selector),
                         Integer.toString(actualCount),
                         Integer.toString(clusterAllowedCount)
                 );
@@ -471,33 +471,28 @@ public final class ContraptionClusterController {
     private static int calculateStability(Map<String, Integer> blockCounts) {
         int totalStability = 0;
         for (Map.Entry<String, Integer> entry : blockCounts.entrySet()) {
-            totalStability += entry.getValue() * resolveStability(entry.getKey());
+            totalStability += entry.getValue() * Config.resolveStability(entry.getKey());
         }
         return totalStability;
     }
 
-    private static int resolveStability(String blockName) {
-        for (List<Object> limitEntry : Config.blocksLimitValues) {
-            if (limitEntry.size() > 2 && limitEntry.get(0).equals(blockName)) {
-                return (Integer) limitEntry.get(2);
-            }
-        }
-        return 100;
-    }
-
     private static String extractBlockName(StructureTemplate.StructureBlockInfo blockInfo) {
-        return blockInfo.state.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
+        return Config.blockName(blockInfo.state);
     }
 
-    private static Component translateBlockName(String blockName) {
-        ResourceLocation id = ResourceLocation.tryParse(blockName);
+    private static Component translateBlockName(String selector) {
+        if (selector.startsWith("#")) {
+            return Component.literal(selector);
+        }
+
+        ResourceLocation id = ResourceLocation.tryParse(selector);
         if (id == null) {
-            return Component.literal(blockName);
+            return Component.literal(selector);
         }
 
         Block block = ForgeRegistries.BLOCKS.getValue(id);
         if (block == null) {
-            return Component.literal(blockName);
+            return Component.literal(selector);
         }
 
         return block.getName();

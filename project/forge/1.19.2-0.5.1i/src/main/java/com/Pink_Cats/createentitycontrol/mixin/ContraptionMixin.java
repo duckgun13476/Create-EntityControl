@@ -118,23 +118,8 @@ public class ContraptionMixin {
 	@Unique
 	private int createentitycontrol$getTotalStabilizeValue() {
 		int totalValue = 0;
-		int defaultValue = 100;
 		for (Map.Entry<String, Integer> entry : blockCountMap_r.entrySet()) {
-			String blockType = entry.getKey();
-			Integer blockCount = entry.getValue();
-
-			boolean found = false;
-			for (List<Object> limitValue : Config.blocksLimitValues) {
-				if (limitValue.size() > 1 && limitValue.get(0).equals(blockType)) {
-					totalValue += blockCount * ((Integer) limitValue.get(2));
-					found = true;
-					break;
-				}
-			}
-
-			if (!found) {
-				totalValue += blockCount * defaultValue;
-			}
+			totalValue += entry.getValue() * Config.resolveStability(entry.getKey());
 		}
 		return totalValue;
 	}
@@ -156,20 +141,20 @@ public class ContraptionMixin {
 
 	@Unique
 	private void createentitycontrol$validateMovedBlockLimits(BlockPos pos, BlockState state) throws AssemblyException {
-		String blockName = state.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
-		if (Config.blocks_unmoved.stream().anyMatch(blockName::equals)) {
+		String blockName = Config.blockName(state);
+		if (Config.matchesAnyBlockSelector(Config.blocks_unmoved, state)) {
 			EntityEnrollment.setControlStatus(8);
 			throw AssemblyException.unmovableBlock(pos, state);
 		}
 
 		blockCountMap_r.put(blockName, blockCountMap_r.getOrDefault(blockName, 0) + 1);
 		for (List<Object> entry : Config.blocksLimitValues) {
-			String limitBlockName = (String) entry.get(0);
-			int allowedCount = (Integer) entry.get(1);
-			int currentCount = blockCountMap_r.getOrDefault(limitBlockName, 0);
+			String selector = (String) entry.get(0);
+			int allowedCount = ((Number) entry.get(1)).intValue();
+			int currentCount = Config.countMatchingBlocks(blockCountMap_r, selector);
 			if (currentCount > allowedCount) {
 				if (Config.debug_block_entity_problem) {
-					createentitycontrol$LOGGER.info("{} count: {} allowed: {}", limitBlockName, currentCount, allowedCount);
+					createentitycontrol$LOGGER.info("{} count: {} allowed: {}", selector, currentCount, allowedCount);
 				}
 				EntityEnrollment.setControlStatus(16);
 				throw AssemblyException.unmovableBlock(pos, state);
@@ -227,15 +212,13 @@ public class ContraptionMixin {
 		// add ignore fix in some entity exp: big cannon added
 		int calculate = 0;
 		for (StructureTemplate.StructureBlockInfo block : blocks.values()) {
-			String blockString = block.state.getBlock().toString();
-
-			if (Config.blocks_ignore.stream().anyMatch(blockString::contains))
+			if (Config.matchesAnyBlockSelector(Config.blocks_ignore, block.state))
 			{
 				calculate +=1;
 			}
 			else{
 				if (Config.debug_block_entity_problem) {
-					createentitycontrol$LOGGER.warn("entity has not ignore block：{}", blockString);
+					createentitycontrol$LOGGER.warn("entity has not ignore block：{}", Config.blockName(block.state));
 
 				}
 			}
@@ -271,9 +254,8 @@ public class ContraptionMixin {
                 blockState = OpacCompatBridge.replaceCreateBreakBlockState(blockState, world, this);
 
                 boolean squeezeBlock;
-                String blockStateString = blockState.getBlock().toString().replaceAll("Block\\{(.*?)\\}", "$1");
-                boolean isInWhitelist = Config.blocks_uncrushable.stream().anyMatch(blockStateString::equals);
-                boolean isInDropList = Config.blocks_uncrushableIgnore.stream().anyMatch(blockStateString::equals);
+                boolean isInWhitelist = Config.matchesAnyBlockSelector(Config.blocks_uncrushable, blockState);
+                boolean isInDropList = Config.matchesAnyBlockSelector(Config.blocks_uncrushableIgnore, blockState);
 
 				if (nonBrittles == BlockMovementChecks.isBrittle(block.state)) {
 					continue;
