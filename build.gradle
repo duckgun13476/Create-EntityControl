@@ -1,3 +1,7 @@
+def cecDependencyCacheDays = providers.gradleProperty('cec.dependencyCacheDays')
+        .map { it as int }
+        .orElse(30)
+
 allprojects {
     repositories {
         mavenLocal()
@@ -21,6 +25,11 @@ allprojects {
             }
         }
     }
+
+    configurations.configureEach {
+        resolutionStrategy.cacheChangingModulesFor cecDependencyCacheDays.get(), 'days'
+        resolutionStrategy.cacheDynamicVersionsFor cecDependencyCacheDays.get(), 'days'
+    }
 }
 
 apply from: rootProject.file('gradle/cec-publishing-root.gradle')
@@ -42,4 +51,27 @@ tasks.register('jarAllVersions') {
     group = 'build'
     description = 'Alias for packageAllVersions; builds final publishable jars for every supported version.'
     dependsOn 'packageAllVersions'
+}
+
+def cachedClientRunProjects = [
+        'forge1192'   : ':forge-1.19.2-0.5.1i',
+        'forge1201j'  : ':forge-1.20.1-0.5.1j',
+        'forge1201x'  : ':forge-1.20.1-6.0.x',
+        'neoforge1211': ':neoforge-1.21.1'
+]
+def isWindowsHost = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')
+
+cachedClientRunProjects.each { taskSuffix, projectPath ->
+    tasks.register("runClientCached${taskSuffix.capitalize()}", Exec) {
+        group = 'development'
+        description = "Runs ${projectPath}:runClient with Gradle offline cache reuse."
+        workingDir = rootProject.projectDir
+        commandLine = [
+                isWindowsHost ? rootProject.file('gradlew.bat').absolutePath : rootProject.file('gradlew').absolutePath,
+                "${projectPath}:runClient",
+                '--offline',
+                '--no-daemon',
+                '--console=plain'
+        ]
+    }
 }
