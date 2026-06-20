@@ -20,6 +20,9 @@ pluginManagement {
             url = 'https://repo.spongepowered.org/repository/maven-public/'
         }
     }
+    plugins {
+        id 'fabric-loom' version '1.10.5'
+    }
 }
 
 plugins {
@@ -53,6 +56,8 @@ include 'forge-1.20.1-6.0.x'
 include 'neoforge-1.21.1'
 include 'fabric-1.19.2'
 include 'fabric-1.20.1'
+include 'fabric-1.21.1'
+include 'create-fabric-stubs-1.21.1'
 
 project(':forge-1.19.2-0.5.1i').projectDir = file('project/forge/1.19.2-0.5.1i')
 project(':forge-1.20.1-0.5.1j').projectDir = file('project/forge/1.20.1-0.5.1j')
@@ -60,3 +65,5 @@ project(':forge-1.20.1-6.0.x').projectDir = file('project/forge/1.20.1-6.0.x')
 project(':neoforge-1.21.1').projectDir = file('project/neoforge/1.21.1')
 project(':fabric-1.19.2').projectDir = file('project/fabric/1.19.2')
 project(':fabric-1.20.1').projectDir = file('project/fabric/1.20.1')
+project(':fabric-1.21.1').projectDir = file('project/fabric/1.21.1')
+project(':create-fabric-stubs-1.21.1').projectDir = file('project/stubs/create-fabric/1.21.1')

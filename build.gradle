@@ -40,7 +40,8 @@ def versionProjects = [
         ':forge-1.20.1-6.0.x',
         ':neoforge-1.21.1',
         ':fabric-1.19.2',
-        ':fabric-1.20.1'
+        ':fabric-1.20.1',
+        ':fabric-1.21.1'
 ]
 
 tasks.register('compileJavaAllVersions') {
@@ -61,7 +62,8 @@ def cachedClientRunProjects = [
         'forge1201x'  : ':forge-1.20.1-6.0.x',
         'neoforge1211': ':neoforge-1.21.1',
         'fabric1192'  : ':fabric-1.19.2',
-        'fabric1201'  : ':fabric-1.20.1'
+        'fabric1201'  : ':fabric-1.20.1',
+        'fabric1211'  : ':fabric-1.21.1'
 ]
 def isWindowsHost = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')
 
