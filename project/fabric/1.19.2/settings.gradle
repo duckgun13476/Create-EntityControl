@@ -1,0 +1,32 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+        mavenCentral()
+        maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+    }
+}
+
+dependencyResolutionManagement {
+        repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://maven.parchmentmc.org/' }
+        maven { url = 'https://mvn.devos.one/releases/' }
+        maven { url = 'https://mvn.devos.one/snapshots/' }
+        maven { url = 'https://maven.createmod.net/' }
+        maven { url = 'https://maven.tterrag.com/' }
+        maven { url = 'https://maven.terraformersmc.com/' }
+        maven {
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
+        maven { url = 'https://raw.githubusercontent.com/Fuzss/modresources/main/maven/' }
+    }
+}
+
+rootProject.name = 'CreateEntityControl-fabric-1.19.2'
+
+

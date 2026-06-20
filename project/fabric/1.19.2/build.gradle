@@ -1,0 +1,29 @@
+def standaloneFabricBuild = rootProject.projectDir.canonicalFile == project.projectDir.canonicalFile
+
+if (standaloneFabricBuild) {
+    apply from: file('fabric-standalone.gradle')
+} else {
+    apply plugin: 'base'
+
+    def gradlewFile = rootProject.file(System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows') ? 'gradlew.bat' : 'gradlew')
+    def fabricProjectDir = project.projectDir
+    def proxiedTasks = ['compileJava', 'processResources', 'classes', 'jar', 'remapJar', 'build', 'runClient', 'runServer', 'clean']
+
+    proxiedTasks.each { taskName ->
+        def proxyTaskName = tasks.findByName(taskName) == null ? taskName : "proxy${taskName.capitalize()}"
+        def proxyTask = tasks.register(proxyTaskName, Exec) {
+            group = taskName.startsWith('run') ? 'fabric' : 'build'
+            workingDir = rootProject.projectDir
+            commandLine gradlewFile.absolutePath, '-p', fabricProjectDir.absolutePath, taskName, '--no-daemon', '--console=plain'
+            if (gradle.startParameter.offline) {
+                args '--offline'
+            }
+        }
+        if (proxyTaskName != taskName) {
+            tasks.named(taskName).configure {
+                dependsOn proxyTask
+            }
+        }
+    }
+}
+

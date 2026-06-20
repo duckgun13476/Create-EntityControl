@@ -1,0 +1,168 @@
+import net.fabricmc.loom.LoomGradlePlugin
+
+buildscript {
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+        mavenCentral()
+        maven { url = 'https://maven.fabricmc.net/' }
+    }
+    dependencies {
+        classpath 'net.fabricmc:fabric-loom:1.10.5'
+    }
+}
+
+apply plugin: 'idea'
+apply plugin: 'maven-publish'
+apply plugin: LoomGradlePlugin
+
+apply from: file('../../../gradle/cec-property-loader.gradle')
+
+group = mod_group_id
+version = mod_version
+repositories {
+    mavenLocal()
+    maven {
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
+    maven { url = 'https://raw.githubusercontent.com/Fuzss/modresources/main/maven/' }
+    maven { url = 'https://mvn.devos.one/releases/' }
+    maven { url = 'https://mvn.devos.one/snapshots/' }
+    maven { url = 'https://maven.createmod.net/' }
+    maven { url = 'https://maven.tterrag.com/' }
+    maven { url = 'https://maven.terraformersmc.com/' }
+    maven { url = 'https://maven.jamieswhiteshirt.com/libs-release/' }
+    maven { url = 'https://maven.fabricmc.net/' }
+    mavenCentral()
+}
+base {
+    archivesName = "${package_name}-fabric-${minecraft_version}"
+}
+
+
+def cachedModuleJar(String group, String artifact, String version) {
+    File moduleDir = file("${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/${group}/${artifact}/${version}")
+    if (!moduleDir.exists()) {
+        return null
+    }
+    return moduleDir.listFiles()
+            ?.collectMany { hashDir -> hashDir.isDirectory() ? hashDir.listFiles()?.toList() ?: [] : [] }
+            ?.find { candidate -> candidate.name == "${artifact}-${version}.jar" }
+}
+
+def modImplementationCached(String group, String artifact, String version, Closure configure = null) {
+    File cachedJar = cachedModuleJar(group, artifact, version)
+    if (cachedJar != null) {
+        dependencies.add('modImplementation', files(cachedJar))
+    } else if (configure != null) {
+        dependencies.add('modImplementation', "${group}:${artifact}:${version}", configure)
+    } else {
+        dependencies.add('modImplementation', "${group}:${artifact}:${version}")
+    }
+}
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.officialMojangMappings()
+
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+    modImplementationCached(forgeconfigapiport_group.toString(), forgeconfigapiport_artifact_id.toString(), forgeconfigapiport_fabric_version.toString()) {
+        exclude group: 'net.fabricmc.fabric-api'
+        exclude group: 'net.fabricmc', module: 'fabric-loader'
+    }
+    modImplementationCached(create_fabric_group.toString(), create_fabric_artifact_id.toString(), create_fabric_version.toString()) {
+        changing = true
+        exclude group: 'net.fabricmc.fabric-api'
+        exclude group: 'net.fabricmc', module: 'fabric-loader'
+    }
+}
+
+    File schematicCheckerRemapCache = file('../../../../Create-SchematicChecker/project/fabric/1.19.2-0.5.1i/build/loom-cache/remapped_working')
+    if (schematicCheckerRemapCache.exists()) {
+        dependencies.add('compileOnly', files(fileTree(schematicCheckerRemapCache) {
+            include '*.jar'
+            exclude '*-sources.jar'
+        }))
+    }
+    if (night_config_version) {
+        dependencies.add('implementation', "com.electronwill.night-config:core:${night_config_version}")
+        dependencies.add('implementation', "com.electronwill.night-config:toml:${night_config_version}")
+    }
+configurations.configureEach {
+    resolutionStrategy.cacheChangingModulesFor 30, 'days'
+    resolutionStrategy.force("net.fabricmc:fabric-loader:${loader_version}")
+}
+
+sourceSets {
+    main {
+        java.srcDir '../../../common/src/main/java'
+        java.srcDir 'src/main/java'
+        resources.srcDir '../../../common/src/main/resources'
+        resources.srcDir 'src/main/resources'
+        resources.exclude 'META-INF/mods.toml', 'META-INF/neoforge.mods.toml'
+    }
+}
+
+loom {
+    mixin {
+        defaultRefmapName = 'createentitycontrol.refmap.json'
+    }
+    runs {
+        client {
+            client()
+            runDir = 'run'
+        }
+        server {
+            server()
+            runDir = 'run/server'
+        }
+    }
+}
+
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    def props = [
+            mod_id            : mod_id,
+            mod_name          : mod_name,
+            mod_version       : mod_version,
+            mod_description   : mod_description,
+            mod_authors       : mod_authors,
+            mod_license       : mod_license,
+            minecraft_version : minecraft_version,
+            loader_version    : loader_version,
+            fabric_api_version: fabric_api_version,
+            java_version      : java_version
+    ]
+    inputs.properties props
+    filesMatching(['fabric.mod.json', 'createentitycontrol.mixins.json', 'pack.mcmeta']) {
+        expand props
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes(["MixinConfigs": "createentitycontrol.mixins.json"])
+    }
+}
+
+tasks.named('remapJar').configure {
+    archiveFileName = "${package_name}-${mod_version}-fabric-${minecraft_version}.jar"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = java_version as int
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version as int)
+    withSourcesJar()
+}
+
+
+
+
+
+
+
