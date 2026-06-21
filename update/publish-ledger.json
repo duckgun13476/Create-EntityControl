@@ -70,6 +70,20 @@
             "source": "direct-curseforge-upload",
             "confirmedAt": "2026-06-21T21:12:05+08:00",
             "fileId": 8293350
+        },
+        {
+            "platform": "curseforge",
+            "projectId": "1256076",
+            "minecraftVersion": "1.19.2",
+            "loader": "fabric",
+            "versionId": "1.19.2-0.6.16.8-0.5.1i-fabric",
+            "displayName": "CEC_v0.6.16.8_for_Create_v0.5.1i_fabric",
+            "artifactFileName": "CreateEntityControl-0.6.16.8-0.5.1i-fabric-1.19.2.jar",
+            "artifactSha256": "4cf11f44029c1f7145668ed62e720430bbd9e44bed5dc674c7b99476a57dce8c",
+            "status": "success",
+            "source": "direct-curseforge-upload",
+            "confirmedAt": "2026-06-21T21:42:22+08:00",
+            "fileId": 8293553
         }
     ]
 }

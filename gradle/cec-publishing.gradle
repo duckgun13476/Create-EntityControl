@@ -287,6 +287,14 @@ ext.cecPublishHttpTimeoutMillis = {
     return (project.findProperty('cec_publish_remote_check_timeout_ms')?.toString()?.trim() ?: '20000') as int
 }
 
+ext.cecPublishUploadRetryCount = {
+    return Math.max(1, (project.findProperty('cec_publish_upload_retry_count')?.toString()?.trim() ?: '3') as int)
+}
+
+ext.cecPublishUploadRetryDelayMillis = {
+    return Math.max(0, (project.findProperty('cec_publish_upload_retry_delay_ms')?.toString()?.trim() ?: '5000') as int)
+}
+
 ext.cecUrlEncode = { String value ->
     return URLEncoder.encode(value, 'UTF-8')
 }
@@ -563,7 +571,7 @@ ext.cecWriteMultipartFilePart = { OutputStream output, String boundary, String n
     output.write("\r\n".getBytes('UTF-8'))
 }
 
-ext.cecUploadCurseForgeFile = {
+ext.cecUploadCurseForgeFileOnce = {
     String token = cecReadCurseForgeUploadApiToken()
     if (token == null || token.trim().isEmpty()) {
         throw new GradleException("Missing CF_TOKEN for CurseForge upload in ${project.path}")
@@ -574,28 +582,58 @@ ext.cecUploadCurseForgeFile = {
     String uploadUrl = "${endpoint}/api/projects/${cecUrlEncode(curseforge_id.toString())}/upload-file"
     String boundary = "cec-cf-${System.currentTimeMillis()}-${Math.abs(new Random().nextInt())}"
     HttpURLConnection connection = (HttpURLConnection) URI.create(uploadUrl).toURL().openConnection()
-    connection.setRequestMethod('POST')
-    connection.setConnectTimeout(cecPublishHttpTimeoutMillis())
-    connection.setReadTimeout(Math.max(cecPublishHttpTimeoutMillis(), 180000))
-    connection.setDoOutput(true)
-    connection.setRequestProperty('X-Api-Token', token.trim())
-    connection.setRequestProperty('User-Agent', cecPublishUserAgent())
-    connection.setRequestProperty('Content-Type', "multipart/form-data; boundary=${boundary}")
+    try {
+        connection.setRequestMethod('POST')
+        connection.setConnectTimeout(cecPublishHttpTimeoutMillis())
+        connection.setReadTimeout(Math.max(cecPublishHttpTimeoutMillis(), 180000))
+        connection.setDoOutput(true)
+        connection.setRequestProperty('X-Api-Token', token.trim())
+        connection.setRequestProperty('User-Agent', cecPublishUserAgent())
+        connection.setRequestProperty('Content-Type', "multipart/form-data; boundary=${boundary}")
 
-    connection.outputStream.withCloseable { OutputStream output ->
-        cecWriteMultipartTextPart(output, boundary, 'metadata', JsonOutput.toJson(cecReadCurseForgeUploadMetadata()), 'application/json; charset=UTF-8')
-        cecWriteMultipartFilePart(output, boundary, 'file', artifactFile)
-        output.write("--${boundary}--\r\n".getBytes('UTF-8'))
-    }
+        connection.outputStream.withCloseable { OutputStream output ->
+            cecWriteMultipartTextPart(output, boundary, 'metadata', JsonOutput.toJson(cecReadCurseForgeUploadMetadata()), 'application/json; charset=UTF-8')
+            cecWriteMultipartFilePart(output, boundary, 'file', artifactFile)
+            output.write("--${boundary}--\r\n".getBytes('UTF-8'))
+        }
 
-    int responseCode = connection.getResponseCode()
-    InputStream stream = responseCode >= 400 ? connection.getErrorStream() : connection.getInputStream()
-    String body = stream == null ? '' : stream.getText('UTF-8')
-    if (responseCode < 200 || responseCode >= 300) {
-        String bodySummary = body == null ? '' : body.replaceAll(/\s+/, ' ').take(500)
-        throw new GradleException("CurseForge upload failed for ${project.path}: POST ${uploadUrl} returned HTTP ${responseCode}${bodySummary.isEmpty() ? '' : " (${bodySummary})"}")
+        int responseCode = connection.getResponseCode()
+        InputStream stream = responseCode >= 400 ? connection.getErrorStream() : connection.getInputStream()
+        String body = stream == null ? '' : stream.getText('UTF-8')
+        if (responseCode < 200 || responseCode >= 300) {
+            String bodySummary = body == null ? '' : body.replaceAll(/\s+/, ' ').take(500)
+            throw new GradleException("CurseForge upload failed for ${project.path}: POST ${uploadUrl} returned HTTP ${responseCode}${bodySummary.isEmpty() ? '' : " (${bodySummary})"}")
+        }
+        return body.trim().isEmpty() ? [:] : new JsonSlurper().parseText(body)
+    } finally {
+        connection.disconnect()
     }
-    return body.trim().isEmpty() ? [:] : new JsonSlurper().parseText(body)
+}
+
+ext.cecUploadCurseForgeFile = {
+    int maxAttempts = cecPublishUploadRetryCount()
+    long delayMillis = cecPublishUploadRetryDelayMillis()
+    Throwable lastFailure = null
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            if (attempt > 1) {
+                println "Retrying CurseForge upload for ${project.path}: attempt ${attempt}/${maxAttempts}"
+            }
+            return cecUploadCurseForgeFileOnce()
+        } catch (GradleException nonRetryable) {
+            throw nonRetryable
+        } catch (Throwable failure) {
+            lastFailure = failure
+            if (attempt >= maxAttempts) {
+                break
+            }
+            println "CurseForge upload attempt ${attempt}/${maxAttempts} failed for ${project.path}: ${failure.class.simpleName}: ${failure.message ?: 'no message'}"
+            if (delayMillis > 0) {
+                Thread.sleep(delayMillis)
+            }
+        }
+    }
+    throw new GradleException("CurseForge upload failed for ${project.path} after ${maxAttempts} attempts", lastFailure)
 }
 
 tasks.register('PublishInfo') {
