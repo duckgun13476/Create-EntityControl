@@ -117,7 +117,7 @@ public final class ContraptionClusterController {
     }
 
     private static boolean isExcluded(AbstractContraptionEntity entity) {
-        return entity.getContraption() == null;
+        return entity.getContraption() == null || entity instanceof CarriageContraptionEntity;
     }
 
     private static void cleanup(long gameTime) {
