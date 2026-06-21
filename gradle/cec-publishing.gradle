@@ -28,7 +28,7 @@ ext.cecReadPrimaryChangelog = {
         return ''
     }
     String text = changelogFile.getText('UTF-8')
-    def matcher = text =~ /(?ms)\A(####\s+v[^\n]+.*?)(?=\n####\s+v|\z)/
+    def matcher = text =~ /(?ms)\A\s*((?:#{2,4}\s+v?[^\n]+).*?)(?=\n#{2,4}\s+v?[^\n]+|\z)/
     return matcher.find() ? matcher.group(1).trim() : text.trim()
 }
 
