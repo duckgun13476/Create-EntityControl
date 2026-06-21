@@ -1,3 +1,7 @@
+## 0.6.16.9
+1. Improve mixin compatibility by replacing remaining `@Overwrite` hooks with cancellable injects where practical.
+2. Prefix mixin handler names.
+
 ## 0.6.16.8
 1. Add OPAC compatibility support.
 2. Add Fabric 1.19.2 and Fabric 1.20.1 release targets with required dependency metadata.
