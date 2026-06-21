@@ -55,18 +55,50 @@ gradle.projectsEvaluated {
 tasks.register('publishInfoAllVersions') {
     group = 'Publishing'
     description = 'Print publish info for all Create Entity Control versions.'
-    dependsOn cecPublishableProjectPaths.collect { "${it}:PublishInfo" }
+    dependsOn 'allworkPublishInfoAllVersions'
+}
+
+tasks.register('allworkPublishInfoAllVersions') {
+    group = 'Allwork'
+    description = 'Print publish info for all Create Entity Control versions.'
+    dependsOn cecPublishableProjectPaths.collect { "${it}:allworkPublishInfo" }
 }
 
 tasks.register('packageAllVersions') {
     group = 'Publishing'
     description = 'Build and verify final jars for all Create Entity Control versions.'
-    dependsOn cecPublishableProjectPaths.collect { "${it}:packagePublishArtifact" }
+    dependsOn 'allworkPackageAllVersions'
+}
+
+tasks.register('allworkPackageAllVersions') {
+    group = 'Allwork'
+    description = 'Build and verify final jars for all Create Entity Control versions.'
+    dependsOn cecPublishableProjectPaths.collect { "${it}:allworkJarJar" }
+    dependsOn cecPublishableProjectPaths.collect { "${it}:verifyPublishArtifact" }
+}
+
+tasks.register('allworkJarJarAllVersions') {
+    group = 'Allwork'
+    description = 'Alias for allworkPackageAllVersions.'
+    dependsOn 'allworkPackageAllVersions'
+}
+
+tasks.register('checkPublishRemoteStatusAllVersions') {
+    group = 'Publishing'
+    description = 'Check remote publishing status for all Create Entity Control versions.'
+    dependsOn cecPublishableProjectPaths.collect { "${it}:checkPublishRemoteStatus" }
 }
 
 tasks.register('publishAllVersions') {
     group = 'Publishing'
     description = 'Build, verify, and publish all Create Entity Control versions.'
     dependsOn 'packageAllVersions'
-    dependsOn cecPublishableProjectPaths.collect { "${it}:publishAll" }
+    dependsOn 'allworkPublishAllVersions'
+}
+
+tasks.register('allworkPublishAllVersions') {
+    group = 'Allwork'
+    description = 'Build, verify, and publish all Create Entity Control versions.'
+    dependsOn 'packageAllVersions'
+    dependsOn cecPublishableProjectPaths.collect { "${it}:allworkPublishAll" }
 }

@@ -18,9 +18,15 @@ if (standaloneFabricBuild) {
             'verifyPublishArtifact',
             'PublishInfo',
             'publishInfo',
+            'checkCurseForgePublishStatus',
+            'checkModrinthPublishStatus',
+            'checkPublishRemoteStatus',
             'publishCurseForge',
             'publishMods',
             'publishAll',
+            'allworkPublishInfo',
+            'allworkPublishAll',
+            'allworkJarJar',
             'runClient',
             'runServer',
             'clean'
@@ -34,6 +40,9 @@ if (standaloneFabricBuild) {
             commandLine gradlewFile.absolutePath, '-p', fabricProjectDir.absolutePath, taskName, '--no-daemon', '--console=plain'
             if (gradle.startParameter.offline) {
                 args '--offline'
+            }
+            gradle.startParameter.projectProperties.each { key, value ->
+                args "-P${key}=${value}"
             }
         }
         if (proxyTaskName != taskName) {

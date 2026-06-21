@@ -1,7 +1,17 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+import java.net.HttpURLConnection
+import java.net.URI
+import java.net.URLEncoder
+import java.security.MessageDigest
+
+// CreateEntityControl publish mission
+
 def cecResolveRepositoryRoot = {
     File current = project.projectDir
     while (current != null) {
-        if (new File(current, 'settings.gradle').exists() && new File(current, 'project').exists()) {
+        if (new File(current, 'gradle/cec-common.properties').exists()) {
             return current
         }
         current = current.parentFile
@@ -51,21 +61,35 @@ ext.cecReadStringListProperty = { String name, List<String> defaultValue = [] ->
             .findAll { !it.isEmpty() }
 }
 
-ext.cecReadPublishArtifactTaskName = {
-    return project.findProperty('cec_publish_artifact_task_name')?.toString()?.trim() ?: 'jar'
+ext.cecReadBooleanProperty = { String name, boolean defaultValue = false ->
+    def value = project.findProperty(name)
+    if (value == null) {
+        return defaultValue
+    }
+    String normalized = value.toString().trim().toLowerCase(Locale.ROOT)
+    if (normalized in ['1', 'true', 'yes', 'y', 'on']) {
+        return true
+    }
+    if (normalized in ['0', 'false', 'no', 'n', 'off']) {
+        return false
+    }
+    return defaultValue
 }
 
-ext.cecReadPublishArtifactFile = {
-    def relativePath = project.findProperty('cec_publish_artifact_relative_path')?.toString()?.trim()
-    if (relativePath != null && !relativePath.isEmpty()) {
-        return project.file(relativePath)
-    }
+ext.cecPublishRemoteCheckEnabled = {
+    return !cecReadBooleanProperty('cec_publish_remote_check_disabled', false)
+}
 
-    def artifactTask = tasks.named(cecReadPublishArtifactTaskName()).get()
-    if (!artifactTask.hasProperty('archiveFile')) {
-        throw new GradleException("Publishing task '${artifactTask.name}' does not expose archiveFile in project '${project.path}'")
-    }
-    return artifactTask.archiveFile.get().asFile
+ext.cecPublishCurseForgeRemoteCheckEnabled = {
+    return cecPublishRemoteCheckEnabled() && !cecReadBooleanProperty('cec_publish_curseforge_remote_check_disabled', false)
+}
+
+ext.cecPublishModrinthRemoteCheckEnabled = {
+    return cecPublishRemoteCheckEnabled() && !cecReadBooleanProperty('cec_publish_modrinth_remote_check_disabled', false)
+}
+
+ext.cecReadPublishArtifactTaskName = {
+    return project.findProperty('cec_publish_artifact_task_name')?.toString()?.trim() ?: 'jar'
 }
 
 ext.cecReadPublishLoaderId = {
@@ -77,6 +101,7 @@ ext.cecReadPublishDisplaySuffix = {
     if (configuredSuffix != null && !configuredSuffix.isEmpty()) {
         return configuredSuffix.startsWith('_') ? configuredSuffix : "_${configuredSuffix}"
     }
+
     def loaderId = cecReadPublishLoaderId()
     return loaderId ? "_${loaderId}" : ''
 }
@@ -86,6 +111,7 @@ ext.cecReadPublishVersionSuffix = {
     if (configuredSuffix != null && !configuredSuffix.isEmpty()) {
         return configuredSuffix.startsWith('-') ? configuredSuffix : "-${configuredSuffix}"
     }
+
     def loaderId = cecReadPublishLoaderId()
     return loaderId ? "-${loaderId}" : ''
 }
@@ -101,22 +127,36 @@ ext.cecReadPublishVersionId = {
     return "${minecraft_version}-${mod_version}${cecReadPublishVersionSuffix()}"
 }
 
-ext.cecReadCurseForgeLoaders = {
+ext.cecReadPublishCurseForgeLoaders = {
     return cecReadStringListProperty('cec_publish_curseforge_loaders')
 }
 
-ext.cecReadModrinthLoaders = {
+ext.cecReadPublishModrinthLoaders = {
     return cecReadStringListProperty('cec_publish_modrinth_loaders')
 }
 
-ext.cecReadRequiredDependencies = {
+ext.cecReadPublishRequiredDependencies = {
     return cecReadStringListProperty('cec_publish_required_dependencies', ['create'])
 }
 
-ext.cecReadOptionalDependencies = {
+ext.cecReadPublishOptionalDependencies = {
     return cecReadStringListProperty('cec_publish_optional_dependencies', ['jei', 'observable'])
 }
 
+ext.cecReadPublishArtifactFile = {
+    def relativePath = project.findProperty('cec_publish_artifact_relative_path')?.toString()?.trim()
+    if (relativePath != null && !relativePath.isEmpty()) {
+        return project.file(relativePath)
+    }
+
+    def artifactTask = tasks.named(cecReadPublishArtifactTaskName()).get()
+    if (!artifactTask.hasProperty('archiveFile')) {
+        throw new GradleException("Publishing task '${artifactTask.name}' does not expose archiveFile in project '${project.path}'")
+    }
+    return artifactTask.archiveFile.get().asFile
+}
+
+// 发布前强制检查最终 jar 是否真实生成，避免平台产物缺失时继续上传其他版本。
 ext.cecVerifyPublishArtifactFile = {
     File artifactFile = cecReadPublishArtifactFile()
     if (!artifactFile.isFile()) {
@@ -128,28 +168,536 @@ ext.cecVerifyPublishArtifactFile = {
     return artifactFile
 }
 
-def appliedCurseForgePlugin = project.plugins.find { plugin ->
-    plugin != null && plugin.getClass().getName() == 'net.darkhax.curseforgegradle.CurseForgeGradlePlugin'
+ext.cecReadPublishLedgerFile = {
+    return new File(cecRepositoryRootDir, 'update/publish-ledger.json')
 }
 
-def curseForgeTaskClass = [
-        appliedCurseForgePlugin?.getClass()?.getClassLoader(),
-        this.class.classLoader,
-        Thread.currentThread().contextClassLoader,
-        project.buildscript.classLoader
-].findResult { loader ->
-    if (loader == null) {
+ext.cecReadJsonFile = { File jsonFile ->
+    String text = jsonFile.getText('UTF-8')
+    if (!text.isEmpty() && text.charAt(0) == '\uFEFF' as char) {
+        text = text.substring(1)
+    }
+    return new JsonSlurper().parseText(text)
+}
+
+ext.cecReadPublishLedgerEntries = {
+    File ledgerFile = cecReadPublishLedgerFile()
+    if (!ledgerFile.isFile()) {
+        return []
+    }
+    def parsed = cecReadJsonFile(ledgerFile)
+    if (parsed instanceof Map && parsed.entries instanceof Collection) {
+        return parsed.entries.findAll { it instanceof Map }.collect { it as Map }
+    }
+    if (parsed instanceof Collection) {
+        return parsed.findAll { it instanceof Map }.collect { it as Map }
+    }
+    return []
+}
+
+ext.cecSha256Hex = { File file ->
+    MessageDigest digest = MessageDigest.getInstance('SHA-256')
+    file.withInputStream { InputStream input ->
+        byte[] buffer = new byte[8192]
+        int read
+        while ((read = input.read(buffer)) > 0) {
+            digest.update(buffer, 0, read)
+        }
+    }
+    return digest.digest().collect { String.format('%02x', it & 0xff) }.join('')
+}
+
+ext.cecWritePublishLedgerSuccessEntry = { String platform, Map extra = [:] ->
+    File ledgerFile = cecReadPublishLedgerFile()
+    File artifactFile = cecReadPublishArtifactFile()
+    Map ledger = [
+            schemaVersion: 1,
+            entries      : []
+    ]
+    if (ledgerFile.isFile()) {
+        def parsed = cecReadJsonFile(ledgerFile)
+        if (parsed instanceof Map) {
+            ledger.putAll(parsed as Map)
+            if (!(ledger.entries instanceof Collection)) {
+                ledger.entries = []
+            }
+        } else if (parsed instanceof Collection) {
+            ledger.entries = parsed
+        }
+    }
+
+    Map entry = [
+            platform        : platform,
+            projectId       : curseforge_id.toString(),
+            minecraftVersion: minecraft_version.toString(),
+            loader          : cecReadPublishLoaderId(),
+            versionId       : cecReadPublishVersionId(),
+            displayName     : cecReadPublishDisplayName(),
+            artifactFileName: artifactFile.name,
+            artifactSha256  : artifactFile.isFile() ? cecSha256Hex(artifactFile) : null,
+            status          : 'success',
+            source          : 'gradle-publish-success',
+            confirmedAt     : new Date().format("yyyy-MM-dd'T'HH:mm:ssXXX")
+    ] + extra.findAll { it.value != null }
+
+    List<Map> retainedEntries = (ledger.entries as Collection)
+            .findAll { it instanceof Map }
+            .collect { it as Map }
+            .findAll { Map existing ->
+                !(existing.platform?.toString() == entry.platform?.toString()
+                        && existing.projectId?.toString() == entry.projectId?.toString()
+                        && existing.minecraftVersion?.toString() == entry.minecraftVersion?.toString()
+                        && existing.loader?.toString() == entry.loader?.toString()
+                        && existing.versionId?.toString() == entry.versionId?.toString()
+                        && existing.displayName?.toString() == entry.displayName?.toString())
+            }
+    retainedEntries.add(entry)
+    ledger.entries = retainedEntries
+
+    ledgerFile.parentFile.mkdirs()
+    ledgerFile.setText(JsonOutput.prettyPrint(JsonOutput.toJson(ledger)) + System.lineSeparator(), 'UTF-8')
+    println "Recorded ${platform} publish success in ${ledgerFile.absolutePath}: version=${entry.versionId} loader=${entry.loader}"
+}
+
+ext.cecPublishLedgerEntryMatchesCurrentTarget = { Map entry, String platform ->
+    String artifactFileName = cecReadPublishArtifactFile().name
+    return entry.status?.toString() == 'success'
+            && entry.platform?.toString() == platform
+            && entry.projectId?.toString() == curseforge_id.toString()
+            && entry.minecraftVersion?.toString() == minecraft_version.toString()
+            && entry.loader?.toString() == cecReadPublishLoaderId()
+            && entry.versionId?.toString() == cecReadPublishVersionId()
+            && entry.displayName?.toString() == cecReadPublishDisplayName()
+            && (!entry.containsKey('artifactFileName') || entry.artifactFileName?.toString() == artifactFileName)
+}
+
+ext.cecFindPublishLedgerSuccessEntry = { String platform ->
+    return cecReadPublishLedgerEntries().find { Map entry ->
+        cecPublishLedgerEntryMatchesCurrentTarget(entry, platform)
+    }
+}
+
+ext.cecPublishRemoteStatus = [:]
+
+ext.cecPublishUserAgent = {
+    return project.findProperty('cec_publish_user_agent')?.toString()?.trim() ?: 'duckgun13476/CreateEntityControl-publish-check'
+}
+
+ext.cecPublishHttpTimeoutMillis = {
+    return (project.findProperty('cec_publish_remote_check_timeout_ms')?.toString()?.trim() ?: '20000') as int
+}
+
+ext.cecUrlEncode = { String value ->
+    return URLEncoder.encode(value, 'UTF-8')
+}
+
+ext.cecHttpGetJson = { String url, Map<String, String> headers = [:], boolean notFoundAsNull = false ->
+    HttpURLConnection connection = (HttpURLConnection) URI.create(url).toURL().openConnection()
+    connection.setRequestMethod('GET')
+    connection.setConnectTimeout(cecPublishHttpTimeoutMillis())
+    connection.setReadTimeout(cecPublishHttpTimeoutMillis())
+    connection.setRequestProperty('Accept', 'application/json')
+    connection.setRequestProperty('User-Agent', cecPublishUserAgent())
+    headers.each { String key, String value ->
+        if (value != null && !value.trim().isEmpty()) {
+            connection.setRequestProperty(key, value)
+        }
+    }
+
+    int responseCode = connection.getResponseCode()
+    InputStream stream = responseCode >= 400 ? connection.getErrorStream() : connection.getInputStream()
+    String body = stream == null ? '' : stream.getText('UTF-8')
+    if (responseCode == 404 && notFoundAsNull) {
         return null
     }
+    if (responseCode < 200 || responseCode >= 300) {
+        String bodySummary = body == null ? '' : body.replaceAll(/\s+/, ' ').take(240)
+        throw new GradleException("Publishing remote check failed for ${project.path}: GET ${url} returned HTTP ${responseCode}${bodySummary.isEmpty() ? '' : " (${bodySummary})"}")
+    }
+    return body.trim().isEmpty() ? null : new JsonSlurper().parseText(body)
+}
+
+ext.cecReadCurseForgeApiKey = {
+    def properties = cecReadPublishingProperties()
+    return properties?.getProperty('CF_CORE_API_KEY')
+            ?: properties?.getProperty('CF_API_KEY')
+            ?: properties?.getProperty('CURSEFORGE_API_KEY')
+            ?: properties?.getProperty('CF_TOKEN')
+}
+
+ext.cecReadCurseForgeApiKeySource = {
+    def properties = cecReadPublishingProperties()
+    if (properties?.getProperty('CF_CORE_API_KEY') != null) {
+        return 'CF_CORE_API_KEY'
+    }
+    if (properties?.getProperty('CF_API_KEY') != null) {
+        return 'CF_API_KEY'
+    }
+    if (properties?.getProperty('CURSEFORGE_API_KEY') != null) {
+        return 'CURSEFORGE_API_KEY'
+    }
+    if (properties?.getProperty('CF_TOKEN') != null) {
+        return 'CF_TOKEN fallback'
+    }
+    return null
+}
+
+ext.cecReadCurseForgeApiHeaders = {
+    String apiKey = cecReadCurseForgeApiKey()
+    if (apiKey == null || apiKey.trim().isEmpty()) {
+        return [:]
+    }
+    String trimmedKey = apiKey.trim()
+    if (trimmedKey.startsWith('cfc_pat_')) {
+        return ['Authorization': "Key ${trimmedKey}"]
+    }
+    return ['x-api-key': trimmedKey]
+}
+
+ext.cecReadCurseForgeModLoaderTypeIds = {
+    Map<String, Integer> loaderTypeIds = [
+            'forge'   : 1,
+            'fabric'  : 4,
+            'quilt'   : 5,
+            'neoforge': 6
+    ]
+    return cecReadPublishCurseForgeLoaders()
+            .collect { loaderName -> loaderTypeIds[loaderName.toString().trim().toLowerCase(Locale.ROOT)] }
+            .findAll { it != null }
+            .unique()
+}
+
+ext.cecCurseForgeFileMatchesPublishTarget = { Map file ->
+    String expectedDisplayName = cecReadPublishDisplayName()
+    String expectedFileName = cecReadPublishArtifactFile().name
+    def gameVersions = file.gameVersions instanceof Collection ? file.gameVersions.collect { it.toString() } : []
+    return (file.displayName?.toString() == expectedDisplayName || file.fileName?.toString() == expectedFileName)
+            && gameVersions.contains(minecraft_version.toString())
+}
+
+ext.cecCheckCurseForgePublished = {
+    if (cecReadBooleanProperty('cec_publish_force', false)) {
+        cecPublishRemoteStatus.curseforgeExists = false
+        cecPublishRemoteStatus.curseforgeLedgerIgnored = true
+        return false
+    }
+
+    Map ledgerEntry = cecFindPublishLedgerSuccessEntry('curseforge') as Map
+    if (ledgerEntry != null) {
+        cecPublishRemoteStatus.curseforgeExists = true
+        cecPublishRemoteStatus.curseforgeLedgerMatch = ledgerEntry
+        return true
+    }
+
+    if (!cecPublishCurseForgeRemoteCheckEnabled()) {
+        cecPublishRemoteStatus.curseforgeExists = false
+        cecPublishRemoteStatus.curseforgeCheckDisabled = true
+        return false
+    }
+
+    String apiKey = cecReadCurseForgeApiKey()
+    if (apiKey == null || apiKey.trim().isEmpty()) {
+        cecPublishRemoteStatus.curseforgeExists = false
+        cecPublishRemoteStatus.curseforgeRemoteUnknown = true
+        cecPublishRemoteStatus.curseforgeRemoteCheckError = "missing CurseForge Core API key"
+        return false
+    }
+
+    String baseUrl = "https://api.curseforge.com/v1/mods/${cecUrlEncode(curseforge_id.toString())}/files"
+    List<Integer> loaderTypeIds = cecReadCurseForgeModLoaderTypeIds()
+    if (loaderTypeIds.isEmpty()) {
+        throw new GradleException("No CurseForge modLoaderType mapping for ${project.path}: ${cecReadPublishCurseForgeLoaders()}")
+    }
+
+    List<Map> matches = []
     try {
-        return Class.forName('net.darkhax.curseforgegradle.TaskPublishCurseForge', true, loader)
-    } catch (Throwable ignored) {
-        return null
+        loaderTypeIds.each { Integer loaderTypeId ->
+            String query = [
+                    "gameVersion=${cecUrlEncode(minecraft_version.toString())}",
+                    "modLoaderType=${loaderTypeId}",
+                    'pageSize=50'
+            ].join('&')
+            def response = cecHttpGetJson("${baseUrl}?${query}", cecReadCurseForgeApiHeaders(), false)
+            def files = response?.data instanceof Collection ? response.data : []
+            files.findAll { file -> file instanceof Map && cecCurseForgeFileMatchesPublishTarget(file as Map) }
+                    .each { file -> matches.add(file as Map) }
+        }
+    } catch (Throwable error) {
+        cecPublishRemoteStatus.curseforgeExists = false
+        cecPublishRemoteStatus.curseforgeRemoteUnknown = true
+        cecPublishRemoteStatus.curseforgeRemoteCheckError = error.message
+        return false
+    }
+
+    boolean exists = !matches.isEmpty()
+    cecPublishRemoteStatus.curseforgeExists = exists
+    cecPublishRemoteStatus.curseforgeMatches = matches
+    return exists
+}
+
+ext.cecCheckModrinthPublished = {
+    if (!cecPublishModrinthRemoteCheckEnabled()) {
+        cecPublishRemoteStatus.modrinthExists = false
+        cecPublishRemoteStatus.modrinthCheckDisabled = true
+        return false
+    }
+    if (cecReadBooleanProperty('cec_publish_force', false)) {
+        cecPublishRemoteStatus.modrinthExists = false
+        return false
+    }
+
+    String versionId = cecReadPublishVersionId()
+    String url = "https://api.modrinth.com/v2/project/${cecUrlEncode(modrinth_id.toString())}/version/${cecUrlEncode(versionId)}"
+    Map<String, String> headers = [:]
+    String token = cecReadPublishingProperties()?.getProperty('MODRINTH_TOKEN')
+    if (token != null && !token.trim().isEmpty()) {
+        headers['Authorization'] = token
+    }
+
+    def version = cecHttpGetJson(url, headers, true)
+    boolean exists = false
+    if (version instanceof Map) {
+        List<String> loaders = version.loaders instanceof Collection ? version.loaders.collect { it.toString() } : []
+        List<String> gameVersions = version.game_versions instanceof Collection ? version.game_versions.collect { it.toString() } : []
+        exists = version.version_number?.toString() == versionId
+                && gameVersions.contains(minecraft_version.toString())
+                && !Collections.disjoint(loaders, cecReadPublishModrinthLoaders())
+    }
+
+    cecPublishRemoteStatus.modrinthExists = exists
+    cecPublishRemoteStatus.modrinthMatch = exists ? version : null
+    return exists
+}
+
+ext.cecReadCurseForgeUploadApiToken = {
+    def properties = cecReadPublishingProperties()
+    return properties?.getProperty('CF_TOKEN')
+}
+
+ext.cecReadCurseForgeUploadEndpoint = {
+    return project.findProperty('cec_publish_curseforge_upload_endpoint')?.toString()?.trim() ?: 'https://authors-old.curseforge.com'
+}
+
+ext.cecReadCurseForgeUploadVersionIds = {
+    // The legacy upload endpoint expects gameVersionId values, not Core API ids.
+    Map<String, Long> minecraftVersionIds = [
+            '1.19.2': 9366L,
+            '1.20.1': 9990L,
+            '1.21.1': 11779L
+    ]
+    Map<String, Long> loaderVersionIds = [
+            'fabric'  : 7499L,
+            'forge'   : 7498L,
+            'neoforge': 10150L,
+            'quilt'   : 9153L
+    ]
+    List<Long> versionIds = []
+    Long minecraftVersionId = minecraftVersionIds[minecraft_version.toString()]
+    if (minecraftVersionId == null) {
+        throw new GradleException("No CurseForge upload gameVersionId mapping for Minecraft ${minecraft_version} in ${project.path}")
+    }
+    versionIds.add(minecraftVersionId)
+
+    cecReadPublishCurseForgeLoaders().each { loaderName ->
+        Long loaderVersionId = loaderVersionIds[loaderName.toString().trim().toLowerCase(Locale.ROOT)]
+        if (loaderVersionId == null) {
+            throw new GradleException("No CurseForge upload loader mapping for ${loaderName} in ${project.path}")
+        }
+        versionIds.add(loaderVersionId)
+    }
+
+    versionIds.add(9638L)
+    versionIds.add(9639L)
+    return versionIds.unique()
+}
+
+ext.cecReadCurseForgeUploadRelations = {
+    Map<String, String> relationTypesBySlug = [:]
+    cecReadPublishRequiredDependencies().each { dependencyId ->
+        relationTypesBySlug[dependencyId.toString()] = 'requiredDependency'
+    }
+    cecReadPublishOptionalDependencies().each { dependencyId ->
+        relationTypesBySlug[dependencyId.toString()] = 'optionalDependency'
+    }
+
+    def projects = relationTypesBySlug.collect { slug, relationType ->
+        [slug: slug, type: relationType]
+    }
+    return projects.isEmpty() ? null : [projects: projects]
+}
+
+ext.cecReadCurseForgeUploadMetadata = {
+    Map metadata = [
+            changelog    : cecReadPrimaryChangelog(),
+            changelogType: 'markdown',
+            displayName  : cecReadPublishDisplayName(),
+            releaseType  : publish_version.toString(),
+            gameVersions : cecReadCurseForgeUploadVersionIds()
+    ]
+    def relations = cecReadCurseForgeUploadRelations()
+    if (relations != null) {
+        metadata.relations = relations
+    }
+    return metadata
+}
+
+ext.cecWriteMultipartTextPart = { OutputStream output, String boundary, String name, String content, String contentType ->
+    output.write("--${boundary}\r\n".getBytes('UTF-8'))
+    output.write("Content-Disposition: form-data; name=\"${name}\"\r\n".getBytes('UTF-8'))
+    output.write("Content-Type: ${contentType}\r\n\r\n".getBytes('UTF-8'))
+    output.write(content.getBytes('UTF-8'))
+    output.write("\r\n".getBytes('UTF-8'))
+}
+
+ext.cecWriteMultipartFilePart = { OutputStream output, String boundary, String name, File file ->
+    output.write("--${boundary}\r\n".getBytes('UTF-8'))
+    output.write("Content-Disposition: form-data; name=\"${name}\"; filename=\"${file.name}\"\r\n".getBytes('UTF-8'))
+    output.write("Content-Type: application/java-archive\r\n\r\n".getBytes('UTF-8'))
+    file.withInputStream { InputStream input ->
+        byte[] buffer = new byte[8192]
+        int read
+        while ((read = input.read(buffer)) > 0) {
+            output.write(buffer, 0, read)
+        }
+    }
+    output.write("\r\n".getBytes('UTF-8'))
+}
+
+ext.cecUploadCurseForgeFile = {
+    String token = cecReadCurseForgeUploadApiToken()
+    if (token == null || token.trim().isEmpty()) {
+        throw new GradleException("Missing CF_TOKEN for CurseForge upload in ${project.path}")
+    }
+
+    File artifactFile = cecVerifyPublishArtifactFile()
+    String endpoint = cecReadCurseForgeUploadEndpoint()
+    String uploadUrl = "${endpoint}/api/projects/${cecUrlEncode(curseforge_id.toString())}/upload-file"
+    String boundary = "cec-cf-${System.currentTimeMillis()}-${Math.abs(new Random().nextInt())}"
+    HttpURLConnection connection = (HttpURLConnection) URI.create(uploadUrl).toURL().openConnection()
+    connection.setRequestMethod('POST')
+    connection.setConnectTimeout(cecPublishHttpTimeoutMillis())
+    connection.setReadTimeout(Math.max(cecPublishHttpTimeoutMillis(), 180000))
+    connection.setDoOutput(true)
+    connection.setRequestProperty('X-Api-Token', token.trim())
+    connection.setRequestProperty('User-Agent', cecPublishUserAgent())
+    connection.setRequestProperty('Content-Type', "multipart/form-data; boundary=${boundary}")
+
+    connection.outputStream.withCloseable { OutputStream output ->
+        cecWriteMultipartTextPart(output, boundary, 'metadata', JsonOutput.toJson(cecReadCurseForgeUploadMetadata()), 'application/json; charset=UTF-8')
+        cecWriteMultipartFilePart(output, boundary, 'file', artifactFile)
+        output.write("--${boundary}--\r\n".getBytes('UTF-8'))
+    }
+
+    int responseCode = connection.getResponseCode()
+    InputStream stream = responseCode >= 400 ? connection.getErrorStream() : connection.getInputStream()
+    String body = stream == null ? '' : stream.getText('UTF-8')
+    if (responseCode < 200 || responseCode >= 300) {
+        String bodySummary = body == null ? '' : body.replaceAll(/\s+/, ' ').take(500)
+        throw new GradleException("CurseForge upload failed for ${project.path}: POST ${uploadUrl} returned HTTP ${responseCode}${bodySummary.isEmpty() ? '' : " (${bodySummary})"}")
+    }
+    return body.trim().isEmpty() ? [:] : new JsonSlurper().parseText(body)
+}
+
+tasks.register('PublishInfo') {
+    group = 'Publishing'
+
+    doLast {
+        println "Publish artifact path: ${cecReadPublishArtifactFile().absolutePath}"
+        println "version = \"${cecReadPublishVersionId()}\"\n" +
+                "    displayName = \"${cecReadPublishDisplayName()}\""
+        println "loaders.cf = ${cecReadPublishCurseForgeLoaders().join(',')}"
+        println "loaders.modrinth = ${cecReadPublishModrinthLoaders().join(',')}"
+        println "dependencies.required = ${cecReadPublishRequiredDependencies().join(',')}"
+        println "dependencies.optional = ${cecReadPublishOptionalDependencies().join(',')}"
+        def properties = cecReadPublishingProperties()
+        if (properties != null) {
+            println "CF_TOKEN: ${properties.getProperty('CF_TOKEN') == null ? 'missing' : 'present'}"
+            println "CurseForge Core API key source: ${cecReadCurseForgeApiKeySource() ?: 'missing'}"
+            println "MODRINTH_TOKEN: ${properties.getProperty('MODRINTH_TOKEN') == null ? 'missing' : 'present'}"
+        } else {
+            println "api.properties not exist"
+        }
     }
 }
 
-if (curseForgeTaskClass == null) {
-    throw new GradleException("Unable to resolve TaskPublishCurseForge for project '${project.path}'")
+tasks.register('checkCurseForgePublishStatus') {
+    group = 'Publishing'
+    description = 'Checks CurseForge for an existing file matching this publish target.'
+
+    doLast {
+        boolean exists = cecCheckCurseForgePublished()
+        if (cecPublishRemoteStatus.curseforgeLedgerIgnored) {
+            println "CurseForge publish ledger ignored for ${project.path} because -Pcec_publish_force=true was set."
+        } else if (cecPublishRemoteStatus.curseforgeLedgerMatch) {
+            def match = cecPublishRemoteStatus.curseforgeLedgerMatch
+            println "CurseForge local ledger has successful upload for ${project.path}; skipping upload. version=${match.versionId} loader=${match.loader} source=${match.source ?: 'ledger'}"
+        } else if (cecPublishRemoteStatus.curseforgeCheckDisabled) {
+            println "CurseForge remote publish check disabled for ${project.path}; no successful local ledger entry found, so upload will be attempted."
+        } else if (cecPublishRemoteStatus.curseforgeRemoteUnknown) {
+            println "CurseForge remote publish check is unavailable for ${project.path}; no successful local ledger entry found, so upload will be attempted. reason=${cecPublishRemoteStatus.curseforgeRemoteCheckError ?: 'unknown'}"
+        } else if (exists) {
+            def match = (cecPublishRemoteStatus.curseforgeMatches ?: [[:]])[0]
+            println "CurseForge already has ${project.path} target; skipping upload if requested. id=${match.id ?: 'unknown'} displayName=${match.displayName ?: 'unknown'} fileName=${match.fileName ?: 'unknown'} fileStatus=${match.fileStatus ?: 'unknown'}"
+        } else {
+            println "CurseForge does not have ${project.path} target: displayName=${cecReadPublishDisplayName()} fileName=${cecReadPublishArtifactFile().name}"
+        }
+    }
+}
+
+tasks.register('checkModrinthPublishStatus') {
+    group = 'Publishing'
+    description = 'Checks Modrinth for an existing version matching this publish target.'
+
+    doLast {
+        boolean exists = cecCheckModrinthPublished()
+        if (cecPublishRemoteStatus.modrinthCheckDisabled) {
+            println "Modrinth remote publish check disabled for ${project.path}; upload task will not be skipped by remote status."
+        } else if (exists) {
+            def match = cecPublishRemoteStatus.modrinthMatch ?: [:]
+            println "Modrinth already has ${project.path} target; skipping upload if requested. id=${match.id ?: 'unknown'} version=${match.version_number ?: cecReadPublishVersionId()} status=${match.status ?: 'unknown'}"
+        } else {
+            println "Modrinth does not have ${project.path} target: version=${cecReadPublishVersionId()}"
+        }
+    }
+}
+
+tasks.register('checkPublishRemoteStatus') {
+    group = 'Publishing'
+    description = 'Checks remote publishing platforms for existing targets before upload.'
+    dependsOn 'checkCurseForgePublishStatus'
+    dependsOn 'checkModrinthPublishStatus'
+}
+
+tasks.register('publishInfo') {
+    group = 'Publishing'
+    description = 'Alias for PublishInfo.'
+    dependsOn 'PublishInfo'
+}
+
+tasks.register('publishAll') {
+    dependsOn 'publishCurseForge'
+    dependsOn 'publishMods'
+    dependsOn 'checkPublishRemoteStatus'
+    dependsOn 'verifyPublishArtifact'
+    group = 'Publishing'
+}
+
+tasks.register('allworkPublishInfo') {
+    group = 'Allwork'
+    description = 'Allwork alias for PublishInfo.'
+    dependsOn 'PublishInfo'
+}
+
+tasks.register('allworkPublishAll') {
+    group = 'Allwork'
+    description = 'Allwork alias for publishAll.'
+    dependsOn 'publishAll'
+}
+
+tasks.register('allworkJarJar') {
+    group = 'Allwork'
+    description = 'Allwork alias for the configured final publish artifact task.'
+    dependsOn cecReadPublishArtifactTaskName()
 }
 
 tasks.register('verifyPublishArtifact') {
@@ -163,71 +711,29 @@ tasks.register('verifyPublishArtifact') {
     }
 }
 
-tasks.register('PublishInfo') {
-    group = 'Publishing'
+tasks.register('publishCurseForge') {
     dependsOn cecReadPublishArtifactTaskName()
+    dependsOn 'verifyPublishArtifact'
+    dependsOn 'checkCurseForgePublishStatus'
+
+    onlyIf {
+        boolean exists = cecPublishRemoteStatus.containsKey('curseforgeExists')
+                ? (cecPublishRemoteStatus.curseforgeExists as boolean)
+                : cecCheckCurseForgePublished()
+        if (exists) {
+            println "Skipping CurseForge upload for ${project.path}: successful local ledger or remote target already exists. Use -Pcec_publish_force=true to upload anyway."
+            return false
+        }
+        return true
+    }
 
     doLast {
-        println "Publish artifact path: ${cecReadPublishArtifactFile().absolutePath}"
-        println "version = \"${cecReadPublishVersionId()}\"\n" +
-                "    displayName = \"${cecReadPublishDisplayName()}\""
-        println "loaders.cf = ${cecReadCurseForgeLoaders().join(',')}"
-        println "loaders.modrinth = ${cecReadModrinthLoaders().join(',')}"
-        println "dependencies.required = ${cecReadRequiredDependencies().join(',')}"
-        println "dependencies.optional = ${cecReadOptionalDependencies().join(',')}"
-        def properties = cecReadPublishingProperties()
-        if (properties != null) {
-            println "CF_TOKEN: ${properties.getProperty('CF_TOKEN') == null ? 'missing' : 'present'}"
-            println "MODRINTH_TOKEN: ${properties.getProperty('MODRINTH_TOKEN') == null ? 'missing' : 'present'}"
-        } else {
-            println "api.properties not exist"
-        }
+        def response = cecUploadCurseForgeFile()
+        cecWritePublishLedgerSuccessEntry('curseforge', [
+                source: 'direct-curseforge-upload',
+                fileId: response instanceof Map ? response.id : null
+        ])
     }
-}
-
-tasks.register('publishInfo') {
-    group = 'Publishing'
-    description = 'Alias for PublishInfo.'
-    dependsOn 'PublishInfo'
-}
-
-tasks.register('packagePublishArtifact') {
-    group = 'Publishing'
-    description = 'Build and verify the final publish artifact.'
-    dependsOn cecReadPublishArtifactTaskName()
-    dependsOn 'verifyPublishArtifact'
-}
-
-tasks.register('publishAll') {
-    group = 'Publishing'
-    dependsOn 'publishCurseForge'
-    dependsOn 'publishMods'
-    dependsOn 'verifyPublishArtifact'
-}
-
-tasks.register('publishCurseForge', curseForgeTaskClass) {
-    dependsOn cecReadPublishArtifactTaskName()
-    dependsOn 'verifyPublishArtifact'
-
-    def properties = cecReadPublishingProperties()
-    apiToken = properties?.getProperty('CF_TOKEN')
-
-    def mainFile = upload(curseforge_id, cecReadPublishArtifactFile())
-    mainFile.changelog = cecReadPrimaryChangelog()
-    mainFile.addEnvironment('Client', 'Server')
-    mainFile.addGameVersion("${minecraft_version}")
-    cecReadCurseForgeLoaders().each { loaderName ->
-        mainFile.addModLoader(loaderName)
-    }
-    cecReadRequiredDependencies().each { dependencyId ->
-        mainFile.addRequirement(dependencyId)
-    }
-    cecReadOptionalDependencies().each { dependencyId ->
-        mainFile.addOptional(dependencyId)
-    }
-    mainFile.displayName = cecReadPublishDisplayName()
-    mainFile.releaseType = publish_version
-    disableVersionDetection()
 }
 
 publishMods {
@@ -240,7 +746,7 @@ publishMods {
     version = cecReadPublishVersionId()
     displayName = cecReadPublishDisplayName()
 
-    cecReadModrinthLoaders().each { loaderName ->
+    cecReadPublishModrinthLoaders().each { loaderName ->
         modLoaders.add(loaderName)
     }
 
@@ -249,10 +755,10 @@ publishMods {
             accessToken = modrinthTokenGet
             projectId = "${modrinth_id}"
             minecraftVersions.add(minecraft_version)
-            cecReadRequiredDependencies().each { dependencyId ->
+            cecReadPublishRequiredDependencies().each { dependencyId ->
                 requires(dependencyId)
             }
-            cecReadOptionalDependencies().each { dependencyId ->
+            cecReadPublishOptionalDependencies().each { dependencyId ->
                 optional(dependencyId)
             }
         }
@@ -262,4 +768,16 @@ publishMods {
 tasks.matching { it.name in ['publishMods', 'publishModrinth'] }.configureEach {
     dependsOn cecReadPublishArtifactTaskName()
     dependsOn 'verifyPublishArtifact'
+    dependsOn 'checkModrinthPublishStatus'
+
+    onlyIf {
+        boolean exists = cecPublishRemoteStatus.containsKey('modrinthExists')
+                ? (cecPublishRemoteStatus.modrinthExists as boolean)
+                : cecCheckModrinthPublished()
+        if (exists) {
+            println "Skipping Modrinth upload for ${project.path}: remote target already exists. Use -Pcec_publish_force=true to upload anyway."
+            return false
+        }
+        return true
+    }
 }
