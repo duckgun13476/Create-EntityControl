@@ -138,13 +138,13 @@ public class Config {
     private static final ForgeConfigSpec.DoubleValue CONTRAPTION_CLUSTER_LOCAL_NOTIFY_RADIUS =
             BUILDER.comment("--------------------------------------------------------------------------")
                     .comment("The local notify radius for nearby actionbar hints and overlay sync.")
-                    .defineInRange("contraption cluster local notify radius", 96.0D, 1.0D, 512.0D);
+                    .defineInRange("contraption cluster local notify radius", 32.0D, 1.0D, 512.0D);
 
     private static final ForgeConfigSpec.DoubleValue CONTRAPTION_CLUSTER_GLOBAL_NEARBY_PLAYERS_RADIUS =
             BUILDER.comment("--------------------------------------------------------------------------")
                     .comment("The search radius used to list nearby players inside the global cluster-blocked message.")
                     .comment("This does not change who receives the global message.")
-                    .defineInRange("contraption cluster global nearby players radius", 96.0D, 1.0D, 512.0D);
+                    .defineInRange("contraption cluster global nearby players radius", 32.0D, 1.0D, 512.0D);
 
     private static final ForgeConfigSpec.DoubleValue CONTRAPTION_CLUSTER_BLOCK_LIMIT_MULTIPLIER =
             BUILDER.comment("--------------------------------------------------------------------------")
@@ -163,6 +163,11 @@ public class Config {
                     .comment("How often contraption cluster validation runs, in seconds.")
                     .comment("This controls the periodic cluster scan cooldown added for performance control.")
                     .defineInRange("contraption cluster scan interval seconds", 1, 1, 10);
+
+    private static final ForgeConfigSpec.BooleanValue CONTRAPTION_CLUSTER_GLOBAL_NOTIFY_ENABLED =
+            BUILDER.comment("--------------------------------------------------------------------------")
+                    .comment("Enable global cluster-blocked chat notifications. Nearby hints still work when this is false.")
+                    .define("contraption cluster global notify enabled", false);
 
     private static final ForgeConfigSpec.IntValue CONTRAPTION_CLUSTER_GLOBAL_NOTIFY_COOLDOWN_MINUTES =
             BUILDER.comment("--------------------------------------------------------------------------")
@@ -265,6 +270,7 @@ public class Config {
     public static double contraption_cluster_block_limit_multiplier;
     public static boolean contraption_cluster_chain_detection;
     public static int contraption_cluster_scan_interval_seconds;
+    public static boolean contraption_cluster_global_notify_enabled;
     public static int contraption_cluster_global_notify_cooldown_minutes;
     public static Set<String> blocks_uncrushable; // 定义为 Set<String>
     public static Set<String> blocks_uncrushableIgnore;
@@ -371,6 +377,7 @@ public class Config {
         contraption_cluster_block_limit_multiplier = CONTRAPTION_CLUSTER_BLOCK_LIMIT_MULTIPLIER.get();
         contraption_cluster_chain_detection = CONTRAPTION_CLUSTER_CHAIN_DETECTION.get();
         contraption_cluster_scan_interval_seconds = CONTRAPTION_CLUSTER_SCAN_INTERVAL_SECONDS.get();
+        contraption_cluster_global_notify_enabled = CONTRAPTION_CLUSTER_GLOBAL_NOTIFY_ENABLED.get();
         contraption_cluster_global_notify_cooldown_minutes = CONTRAPTION_CLUSTER_GLOBAL_NOTIFY_COOLDOWN_MINUTES.get();
         block_entity_max_stabilize_count = BLOCK_ENTITY_MAX_STABILIZE_COUNT.get();
         enableBlockEntityExperimentPara = ENABLE_BLOCK_EXPERIMENT_PARA.get();

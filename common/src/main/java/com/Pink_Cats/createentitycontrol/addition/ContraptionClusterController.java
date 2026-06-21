@@ -369,6 +369,10 @@ public final class ContraptionClusterController {
 
         syncOverlay(cluster, violation, location, sample);
 
+        if (!Config.contraption_cluster_global_notify_enabled) {
+            return;
+        }
+
         MinecraftServer server = ContraptionClusterPlatform.level(sample).getServer();
         if (server == null) {
             return;
