@@ -71,7 +71,7 @@ dependencies {
         exclude group: 'net.fabricmc.fabric-api'
         exclude group: 'net.fabricmc', module: 'fabric-loader'
     }
-    modImplementationCached(create_fabric_group.toString(), create_fabric_artifact_id.toString(), create_fabric_version.toString()) {
+    modImplementation("${create_fabric_group}:${create_fabric_artifact_id}:${create_fabric_version}") {
         changing = true
         exclude group: 'net.fabricmc.fabric-api'
         exclude group: 'net.fabricmc', module: 'fabric-loader'

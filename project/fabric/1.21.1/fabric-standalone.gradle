@@ -74,7 +74,7 @@ dependencies {
     modImplementationCached(forgeconfigapiport_group.toString(), 'forgeconfigapiport-common-neoforgeapi', forgeconfigapiport_fabric_version.toString())
     dependencies.add('implementation', "com.electronwill.night-config:core:${night_config_version}")
     dependencies.add('implementation', "com.electronwill.night-config:toml:${night_config_version}")
-    modImplementation files('../../stubs/create-fabric/1.21.1/build/libs/create-fabric-stubs-1.21.1-1.21.1.jar')
+    modCompileOnly files('../../stubs/create-fabric/1.21.1/build/libs/create-fabric-stubs-1.21.1-1.21.1.jar')
 }
 
 configurations.configureEach {
