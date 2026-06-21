@@ -1,0 +1,75 @@
+{
+    "schemaVersion": 1,
+    "entries": [
+        {
+            "platform": "curseforge",
+            "projectId": "1256076",
+            "minecraftVersion": "1.19.2",
+            "loader": "forge",
+            "versionId": "1.19.2-0.6.16.8-0.5.1i-forge",
+            "displayName": "CEC_v0.6.16.8_for_Create_v0.5.1i_forge",
+            "artifactFileName": "CreateEntityControl-0.6.16.8-0.5.1i-forge-1.19.2.jar",
+            "artifactSha256": "e7fe36722ce56cb68c97bc7ea8355eed6dd7735a724cb3952ecd7aa8ce48631e",
+            "status": "success",
+            "source": "direct-curseforge-upload",
+            "confirmedAt": "2026-06-21T21:09:46+08:00",
+            "fileId": 8293329
+        },
+        {
+            "platform": "curseforge",
+            "projectId": "1256076",
+            "minecraftVersion": "1.20.1",
+            "loader": "forge",
+            "versionId": "1.20.1-0.6.16.8-0.5.1j-forge",
+            "displayName": "CEC_v0.6.16.8_for_Create_v0.5.1j_forge",
+            "artifactFileName": "CreateEntityControl-0.6.16.8-0.5.1j-forge-1.20.1.jar",
+            "artifactSha256": "dfa20074313b8e6267d8aa53c6400ce7c026a696ebf8dc31fe3504c0b60caace",
+            "status": "success",
+            "source": "direct-curseforge-upload",
+            "confirmedAt": "2026-06-21T21:09:51+08:00",
+            "fileId": 8293331
+        },
+        {
+            "platform": "curseforge",
+            "projectId": "1256076",
+            "minecraftVersion": "1.20.1",
+            "loader": "forge",
+            "versionId": "1.20.1-0.6.16.8-6.0-forge",
+            "displayName": "CEC_v0.6.16.8_for_Create_v6.0_forge",
+            "artifactFileName": "CreateEntityControl-0.6.16.8-6.0-forge-1.20.1.jar",
+            "artifactSha256": "1740e8f4ac69dff797df1acdbba7fd786d68bbd8a57db9f9fe5d7342ba2cd1a3",
+            "status": "success",
+            "source": "direct-curseforge-upload",
+            "confirmedAt": "2026-06-21T21:09:58+08:00",
+            "fileId": 8293333
+        },
+        {
+            "platform": "curseforge",
+            "projectId": "1256076",
+            "minecraftVersion": "1.21.1",
+            "loader": "neoforge",
+            "versionId": "1.21.1-0.6.16.8-6.0.x-neoforge",
+            "displayName": "CEC_v0.6.16.8_for_Create_v6.0.x_neoforge",
+            "artifactFileName": "CreateEntityControl-0.6.16.8-6.0.x-neoforge-1.21.1.jar",
+            "artifactSha256": "2af78f7d6d50f6c30507eaca0e705128c6a24b6c478cc5d2c99e0c06f9360bd7",
+            "status": "success",
+            "source": "direct-curseforge-upload",
+            "confirmedAt": "2026-06-21T21:10:03+08:00",
+            "fileId": 8293334
+        },
+        {
+            "platform": "curseforge",
+            "projectId": "1256076",
+            "minecraftVersion": "1.20.1",
+            "loader": "fabric",
+            "versionId": "1.20.1-0.6.16.8-6.0.x-fabric",
+            "displayName": "CEC_v0.6.16.8_for_Create_v6.0.x_fabric",
+            "artifactFileName": "CreateEntityControl-0.6.16.8-6.0.x-fabric-1.20.1.jar",
+            "artifactSha256": "eee8fb66128fd8ab2d8ba1541b3119a52d3e1ac73318b99419b032c43ec58195",
+            "status": "success",
+            "source": "direct-curseforge-upload",
+            "confirmedAt": "2026-06-21T21:12:05+08:00",
+            "fileId": 8293350
+        }
+    ]
+}
