@@ -1,8 +1,9 @@
-## 0.3.8.4
-1. Add support for opac.
-2. Add a config switch to keep cluster blocked global chat notifications disabled by default while preserving nearby actionbar hints and overlays.
-3. Reduce the default cluster local notify and nearby-player search radius from 96 to 32 blocks.
-4. Exclude Create train carriage contraptions from cluster length checks so long trains can keep moving while player-built contraption clusters are still limited.
+## 0.6.16.8
+1. Add OPAC compatibility support.
+2. Add Fabric 1.19.2 and Fabric 1.20.1 release targets with required dependency metadata.
+3. Exclude Create train carriages from cluster length checks so long trains can keep moving.
+4. Keep global cluster block notifications disabled by default while preserving nearby hints and overlays.
+5. Improve release packaging and publishing reliability with reusable changelogs, remote checks, and resumable upload records.
 
 ## 0.3.8.3
 1. New command for fix Create BlockEntity can't blockify (Not support train because this bug won't happen in train only in other moving structures like bearing). (type /cec for more)
