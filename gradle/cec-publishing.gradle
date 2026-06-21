@@ -173,6 +173,8 @@ tasks.register('PublishInfo') {
                 "    displayName = \"${cecReadPublishDisplayName()}\""
         println "loaders.cf = ${cecReadCurseForgeLoaders().join(',')}"
         println "loaders.modrinth = ${cecReadModrinthLoaders().join(',')}"
+        println "dependencies.required = ${cecReadRequiredDependencies().join(',')}"
+        println "dependencies.optional = ${cecReadOptionalDependencies().join(',')}"
         def properties = cecReadPublishingProperties()
         if (properties != null) {
             println "CF_TOKEN: ${properties.getProperty('CF_TOKEN') == null ? 'missing' : 'present'}"

@@ -34,8 +34,8 @@ ext.cec_publish_display_suffix = 'fabric'
 ext.cec_publish_version_suffix = 'fabric'
 ext.cec_publish_curseforge_loaders = 'Fabric'
 ext.cec_publish_modrinth_loaders = 'fabric'
-ext.cec_publish_required_dependencies = 'create'
-ext.cec_publish_optional_dependencies = 'fabric-api'
+ext.cec_publish_required_dependencies = 'create-fabric,fabric-api,forge-config-api-port'
+ext.cec_publish_optional_dependencies = ''
 repositories {
     mavenLocal()
     maven {
