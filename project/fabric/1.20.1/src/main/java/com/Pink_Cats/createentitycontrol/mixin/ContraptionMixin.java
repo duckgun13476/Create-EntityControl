@@ -205,7 +205,7 @@ public class ContraptionMixin {
 	 * @reason catch_add_block_base
 	 */
 	@Inject(method = "addBlocksToWorld", at = @At("HEAD"),cancellable = true)
-	public void injectAddBlocksToWorld(Level world, StructureTransform transform, CallbackInfo ci) {
+	public void createentitycontrol$handleAddBlocksToWorld(Level world, StructureTransform transform, CallbackInfo ci) {
         //same structure ignore
         if (Config.keep_structure_at_first) {
 

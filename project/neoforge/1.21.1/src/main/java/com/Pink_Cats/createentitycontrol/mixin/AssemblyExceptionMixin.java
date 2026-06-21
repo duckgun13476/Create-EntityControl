@@ -9,7 +9,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,94 +16,62 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.lang.reflect.Field;
 
-
-
-
-@Mixin(value = AssemblyException.class,remap = false)
+@Mixin(value = AssemblyException.class, remap = false)
 public class AssemblyExceptionMixin {
 
     @Unique
     private static final Logger createentitycontrol$LOGGER = LogUtils.getLogger();
 
-    /**
-     * @author Pink_Cats
-     * @reason Inject custom behavior for unmovableBlock
-     */
-    @Inject(method = "unmovableBlock", at = @At("HEAD") )
-    private static void injectUnmovableBlock(BlockPos pos, BlockState state, CallbackInfoReturnable<AssemblyException> cir) {
-        //LOGGER.error("HELLO FROM MIXIN");
+    @Inject(method = "unmovableBlock", at = @At("HEAD"), cancellable = true)
+    private static void createentitycontrol$unmovableBlock(BlockPos pos, BlockState state,
+                                                           CallbackInfoReturnable<AssemblyException> cir)
+            throws IllegalAccessException, NoSuchFieldException {
+        cir.setReturnValue(createentitycontrol$createUnmovableBlock(pos, state));
     }
 
-    /**
-     * @author Pink_Cats
-     * @reason Inject
-     */
-    @Overwrite
-    public static AssemblyException unmovableBlock(BlockPos pos, BlockState state) throws IllegalAccessException, NoSuchFieldException {
-        if (EntityEnrollment.getControlStatus() == 8) {
-            AssemblyException e = new AssemblyException("unmovableBlock_entity_control_unmovable_block", pos.getX(), pos.getY(), pos.getZ(),
-                    state.getBlock().getName());
-            if (Config.debug_block_entity_problem) {
-                createentitycontrol$LOGGER.info("create.entity has unmovable block locate [{},{},{}]", pos.getX(), pos.getY(), pos.getZ());
-            }
-            Field positionField = AssemblyException.class.getDeclaredField("position");
-            positionField.setAccessible(true); // 允许访问 private 字段
-            positionField.set(e, pos); // 设置位置
-            return e;
-        } else if (EntityEnrollment.getControlStatus() == 16) {
-            AssemblyException e = new AssemblyException("unmovableBlock_entity_control_limit_special_block", pos.getX(), pos.getY(), pos.getZ(),
-                    state.getBlock().getName());
-            if (Config.debug_block_entity_problem) {
-                createentitycontrol$LOGGER.info("create.entity has reach special block limit locate [{},{},{}]", pos.getX(), pos.getY(), pos.getZ());
-            }
-            Field positionField = AssemblyException.class.getDeclaredField("position");
-            positionField.setAccessible(true); // 允许访问 private 字段
-            positionField.set(e, pos); // 设置位置
-            return e;
-        } else if (EntityEnrollment.getControlStatus() == 32) {
-            AssemblyException e = new AssemblyException("unmovableBlock_entity_control_structure_too_long", pos.getX(), pos.getY(), pos.getZ(),
-                    state.getBlock().getName());
-            if (Config.debug_block_entity_problem) {
-                createentitycontrol$LOGGER.info("create.entity was too long locate [{},{},{}]", pos.getX(), pos.getY(), pos.getZ());
-            }
-            Field positionField = AssemblyException.class.getDeclaredField("position");
-            positionField.setAccessible(true); // 允许访问 private 字段
-            positionField.set(e, pos); // 设置位置
-            return e;
-        } else {
-            AssemblyException e = new AssemblyException("unmovableBlock_entity_control_unmovable_block", pos.getX(), pos.getY(), pos.getZ(),
-                    state.getBlock().getName());
-            if (Config.debug_block_entity_problem) {
-                createentitycontrol$LOGGER.info("create.entity is unmovable locate [{},{},{}]", pos.getX(), pos.getY(), pos.getZ());
-            }
-            Field positionField = AssemblyException.class.getDeclaredField("position");
-            positionField.setAccessible(true); // 允许访问 private 字段
-            positionField.set(e, pos); // 设置位置
-            return e;
-        }
-
-
-    }
-    /**
-     * @author Pink_Cats
-     * @reason Inject
-     */
-    @Overwrite
-    public static AssemblyException structureTooLarge() {
-        if (Config.enableBlockEntityExperimentPara)
-        {
+    @Inject(method = "structureTooLarge", at = @At("HEAD"), cancellable = true)
+    private static void createentitycontrol$structureTooLarge(CallbackInfoReturnable<AssemblyException> cir) {
+        if (Config.enableBlockEntityExperimentPara) {
             String globalValue = System.getProperty("globalValue");
             String globalCount = System.getProperty("globalCount");
-            return new AssemblyException("structureTooLargeOrUnstable",
+            cir.setReturnValue(new AssemblyException("structureTooLargeOrUnstable",
                     AllConfigs.server().kinetics.maxBlocksMoved.get(),
                     globalCount,
                     Config.block_entity_max_stabilize_count,
-                    globalValue) ;
-        }
-        else {
-            return new AssemblyException("structureTooLarge", AllConfigs.server().kinetics.maxBlocksMoved.get());
+                    globalValue));
+        } else {
+            cir.setReturnValue(new AssemblyException("structureTooLarge", AllConfigs.server().kinetics.maxBlocksMoved.get()));
         }
     }
 
+    @Unique
+    private static AssemblyException createentitycontrol$createUnmovableBlock(BlockPos pos, BlockState state)
+            throws NoSuchFieldException, IllegalAccessException {
+        int status = EntityEnrollment.getControlStatus();
+        String translationKey;
+        String logMessage;
+        if (status == 8) {
+            translationKey = "unmovableBlock_entity_control_unmovable_block";
+            logMessage = "create.entity has unmovable block locate [{},{},{}]";
+        } else if (status == 16) {
+            translationKey = "unmovableBlock_entity_control_limit_special_block";
+            logMessage = "create.entity has reach special block limit locate [{},{},{}]";
+        } else if (status == 32) {
+            translationKey = "unmovableBlock_entity_control_structure_too_long";
+            logMessage = "create.entity was too long locate [{},{},{}]";
+        } else {
+            translationKey = "unmovableBlock_entity_control_unmovable_block";
+            logMessage = "create.entity is unmovable locate [{},{},{}]";
+        }
 
+        AssemblyException exception = new AssemblyException(translationKey, pos.getX(), pos.getY(), pos.getZ(),
+                state.getBlock().getName());
+        if (Config.debug_block_entity_problem) {
+            createentitycontrol$LOGGER.info(logMessage, pos.getX(), pos.getY(), pos.getZ());
+        }
+        Field positionField = AssemblyException.class.getDeclaredField("position");
+        positionField.setAccessible(true);
+        positionField.set(exception, pos);
+        return exception;
+    }
 }

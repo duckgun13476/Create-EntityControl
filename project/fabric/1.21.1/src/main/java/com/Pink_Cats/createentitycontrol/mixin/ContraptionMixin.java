@@ -78,33 +78,33 @@ public class ContraptionMixin {
 	@Unique
 	Map<String, Integer> blockCountMap_r = new HashMap<>();
 	@Unique
-	BlockPos createentitycontroller$minPos = new BlockPos(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+	BlockPos createentitycontrol$minPos = new BlockPos(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
 	@Unique
-	BlockPos createentitycontroller$maxPos = new BlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
+	BlockPos createentitycontrol$maxPos = new BlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 
 	@Unique
-	private static final Logger createentitycontroller$LOGGER = LogUtils.getLogger();
+	private static final Logger createentitycontrol$LOGGER = LogUtils.getLogger();
 
 
 
 
 	@Inject(method = "searchMovedStructure", at = @At("HEAD"))
-	public void createentitycontroller$resetSearchMovedStructureState(Level world, BlockPos pos, Direction forcedDirection,
+	public void createentitycontrol$resetSearchMovedStructureState(Level world, BlockPos pos, Direction forcedDirection,
 																   CallbackInfoReturnable<Boolean> cir) {
 		blockCountMap_r.clear();
-		createentitycontroller$minPos = new BlockPos(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
-		createentitycontroller$maxPos = new BlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
+		createentitycontrol$minPos = new BlockPos(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+		createentitycontrol$maxPos = new BlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 	}
 
 	@Inject(method = "searchMovedStructure", at = @At("RETURN"))
-	public void createentitycontroller$validateSearchMovedStructureStability(Level world, BlockPos pos,
+	public void createentitycontrol$validateSearchMovedStructureStability(Level world, BlockPos pos,
 																	 Direction forcedDirection,
 																	 CallbackInfoReturnable<Boolean> cir) throws AssemblyException {
 		if (!Boolean.TRUE.equals(cir.getReturnValue()) || !Config.enableBlockEntityExperimentPara) {
 			return;
 		}
 
-		int totalValue = createentitycontroller$getTotalStabilizeValue();
+		int totalValue = createentitycontrol$getTotalStabilizeValue();
 		int globalCount = 0;
 		for (Integer count : blockCountMap_r.values()) {
 			globalCount += count;
@@ -118,7 +118,7 @@ public class ContraptionMixin {
 	}
 
 	@Unique
-	private int createentitycontroller$getTotalStabilizeValue() {
+	private int createentitycontrol$getTotalStabilizeValue() {
 		int totalValue = 0;
 		for (Map.Entry<String, Integer> entry : blockCountMap_r.entrySet()) {
 			totalValue += entry.getValue() * Config.resolveStability(entry.getKey());
@@ -131,18 +131,18 @@ public class ContraptionMixin {
 			at = @At(value = "INVOKE",
 					target = "Lcom/simibubi/create/content/contraptions/Contraption;addBlock(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lorg/apache/commons/lang3/tuple/Pair;)V")
 	)
-	protected void createentitycontroller$addBlockWithLimits(Contraption instance, Level world, BlockPos pos,
+	protected void createentitycontrol$addBlockWithLimits(Contraption instance, Level world, BlockPos pos,
 																  Pair<StructureTemplate.StructureBlockInfo, BlockEntity> pair)
 			throws AssemblyException {
 		addBlock(world, pos, pair);
 		if (blocks.size() > AllConfigs.server().kinetics.maxBlocksMoved.get()) {
 			return;
 		}
-		createentitycontroller$validateMovedBlockLimits(pos, pair.getLeft().state());
+		createentitycontrol$validateMovedBlockLimits(pos, pair.getLeft().state());
 	}
 
 	@Unique
-	private void createentitycontroller$validateMovedBlockLimits(BlockPos pos, BlockState state) throws AssemblyException {
+	private void createentitycontrol$validateMovedBlockLimits(BlockPos pos, BlockState state) throws AssemblyException {
 		String blockName = Config.blockName(state);
 		if (Config.matchesAnyBlockSelector(Config.blocks_unmoved, state)) {
 			EntityEnrollment.setControlStatus(8);
@@ -156,25 +156,25 @@ public class ContraptionMixin {
 			int currentCount = Config.countMatchingBlocks(blockCountMap_r, selector);
 			if (currentCount > allowedCount) {
 				if (Config.debug_block_entity_problem) {
-					createentitycontroller$LOGGER.info("{} count: {} allowed: {}", selector, currentCount, allowedCount);
+					createentitycontrol$LOGGER.info("{} count: {} allowed: {}", selector, currentCount, allowedCount);
 				}
 				EntityEnrollment.setControlStatus(16);
 				throw AssemblyExceptionHelper.limitSpecialBlock(pos, state,
-						BlockSelectorDetails.describeLimitSelector(selector, blockCountMap_r, this::createentitycontroller$translateBlockName));
+						BlockSelectorDetails.describeLimitSelector(selector, blockCountMap_r, this::createentitycontrol$translateBlockName));
 			}
 		}
 
-		createentitycontroller$expandMovedBlockBounds(pos);
-		if ((createentitycontroller$maxPos.getX() - createentitycontroller$minPos.getX()) > Config.blockEntityXZMaxLength
-				|| (createentitycontroller$maxPos.getY() - createentitycontroller$minPos.getY()) > Config.blockEntityYMaxLength
-				|| (createentitycontroller$maxPos.getZ() - createentitycontroller$minPos.getZ()) > Config.blockEntityXZMaxLength) {
+		createentitycontrol$expandMovedBlockBounds(pos);
+		if ((createentitycontrol$maxPos.getX() - createentitycontrol$minPos.getX()) > Config.blockEntityXZMaxLength
+				|| (createentitycontrol$maxPos.getY() - createentitycontrol$minPos.getY()) > Config.blockEntityYMaxLength
+				|| (createentitycontrol$maxPos.getZ() - createentitycontrol$minPos.getZ()) > Config.blockEntityXZMaxLength) {
 			EntityEnrollment.setControlStatus(32);
 			throw AssemblyException.unmovableBlock(pos, state);
 		}
 	}
 
 	@Unique
-	private Component createentitycontroller$translateBlockName(String selector) {
+	private Component createentitycontrol$translateBlockName(String selector) {
 		ResourceLocation id = ResourceLocation.tryParse(selector);
 		if (id == null) {
 			return Component.literal(selector);
@@ -187,16 +187,16 @@ public class ContraptionMixin {
 	}
 
 	@Unique
-	private void createentitycontroller$expandMovedBlockBounds(BlockPos pos) {
-		createentitycontroller$minPos = new BlockPos(
-				Math.min(pos.getX(), createentitycontroller$minPos.getX()),
-				Math.min(pos.getY(), createentitycontroller$minPos.getY()),
-				Math.min(pos.getZ(), createentitycontroller$minPos.getZ())
+	private void createentitycontrol$expandMovedBlockBounds(BlockPos pos) {
+		createentitycontrol$minPos = new BlockPos(
+				Math.min(pos.getX(), createentitycontrol$minPos.getX()),
+				Math.min(pos.getY(), createentitycontrol$minPos.getY()),
+				Math.min(pos.getZ(), createentitycontrol$minPos.getZ())
 		);
-		createentitycontroller$maxPos = new BlockPos(
-				Math.max(pos.getX(), createentitycontroller$maxPos.getX()),
-				Math.max(pos.getY(), createentitycontroller$maxPos.getY()),
-				Math.max(pos.getZ(), createentitycontroller$maxPos.getZ())
+		createentitycontrol$maxPos = new BlockPos(
+				Math.max(pos.getX(), createentitycontrol$maxPos.getX()),
+				Math.max(pos.getY(), createentitycontrol$maxPos.getY()),
+				Math.max(pos.getZ(), createentitycontrol$maxPos.getZ())
 		);
 	}
 
@@ -205,7 +205,7 @@ public class ContraptionMixin {
 	 * @reason catch_add_block_base
 	 */
 	@Inject(method = "addBlocksToWorld", at = @At("HEAD"),cancellable = true)
-	public void injectAddBlocksToWorld(Level world, StructureTransform transform, CallbackInfo ci) {
+	public void createentitycontrol$handleAddBlocksToWorld(Level world, StructureTransform transform, CallbackInfo ci) {
         //same structure ignore
         if (Config.keep_structure_at_first) {
 
@@ -213,7 +213,7 @@ public class ContraptionMixin {
 
             if (StructureFunc.StructureMatch(blocks,transform)){
                 if (Config.debug_block_entity_problem) {
-                    createentitycontroller$LOGGER.warn("same structure jump control");
+                    createentitycontrol$LOGGER.warn("same structure jump control");
 
                 }
             }
@@ -234,7 +234,7 @@ public class ContraptionMixin {
 			}
 			else{
 				if (Config.debug_block_entity_problem) {
-					createentitycontroller$LOGGER.warn("entity has not ignore block：{}", Config.blockName(block.state()));
+					createentitycontrol$LOGGER.warn("entity has not ignore block：{}", Config.blockName(block.state()));
 
 				}
 			}
