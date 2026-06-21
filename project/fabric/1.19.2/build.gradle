@@ -7,7 +7,24 @@ if (standaloneFabricBuild) {
 
     def gradlewFile = rootProject.file(System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows') ? 'gradlew.bat' : 'gradlew')
     def fabricProjectDir = project.projectDir
-    def proxiedTasks = ['compileJava', 'processResources', 'classes', 'jar', 'remapJar', 'build', 'runClient', 'runServer', 'clean']
+    def proxiedTasks = [
+            'compileJava',
+            'processResources',
+            'classes',
+            'jar',
+            'remapJar',
+            'build',
+            'packagePublishArtifact',
+            'verifyPublishArtifact',
+            'PublishInfo',
+            'publishInfo',
+            'publishCurseForge',
+            'publishMods',
+            'publishAll',
+            'runClient',
+            'runServer',
+            'clean'
+    ]
 
     proxiedTasks.each { taskName ->
         def proxyTaskName = tasks.findByName(taskName) == null ? taskName : "proxy${taskName.capitalize()}"

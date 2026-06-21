@@ -1,3 +1,5 @@
+import me.modmuss50.mpp.MppPlugin
+import net.darkhax.curseforgegradle.CurseForgeGradlePlugin
 import net.fabricmc.loom.LoomGradlePlugin
 
 buildscript {
@@ -9,17 +11,31 @@ buildscript {
     }
     dependencies {
         classpath 'net.fabricmc:fabric-loom:1.10.5'
+        classpath 'me.modmuss50:mod-publish-plugin:1.0.0'
+        classpath 'net.darkhax.curseforgegradle:CurseForgeGradle:1.1.28'
     }
 }
 
 apply plugin: 'idea'
 apply plugin: 'maven-publish'
+apply plugin: CurseForgeGradlePlugin
 apply plugin: LoomGradlePlugin
+apply plugin: MppPlugin
 
 apply from: file('../../../gradle/cec-property-loader.gradle')
 
 group = mod_group_id
 version = mod_version
+
+ext.cec_publish_artifact_task_name = 'remapJar'
+ext.cec_publish_artifact_relative_path = "build/libs/${package_name}-${mod_version}-fabric-${minecraft_version}.jar"
+ext.cec_publish_loader_id = 'fabric'
+ext.cec_publish_display_suffix = 'fabric'
+ext.cec_publish_version_suffix = 'fabric'
+ext.cec_publish_curseforge_loaders = 'Fabric'
+ext.cec_publish_modrinth_loaders = 'fabric'
+ext.cec_publish_required_dependencies = 'create'
+ext.cec_publish_optional_dependencies = 'fabric-api'
 repositories {
     mavenLocal()
     maven {
@@ -200,6 +216,8 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(java_version as int)
     withSourcesJar()
 }
+
+apply from: file('../../../gradle/cec-publishing.gradle')
 
 
 

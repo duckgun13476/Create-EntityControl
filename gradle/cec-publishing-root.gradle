@@ -2,7 +2,9 @@ def cecPublishableProjectPaths = [
         ':forge-1.19.2-0.5.1i',
         ':forge-1.20.1-0.5.1j',
         ':forge-1.20.1-6.0.x',
-        ':neoforge-1.21.1'
+        ':neoforge-1.21.1',
+        ':fabric-1.19.2',
+        ':fabric-1.20.1'
 ]
 
 ext.cecPublishableProjectPaths = cecPublishableProjectPaths
