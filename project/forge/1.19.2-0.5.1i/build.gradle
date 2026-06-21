@@ -205,7 +205,7 @@ compileJava {
 }
 
 jar {
-    from('LICENSE.txt') {
+    from(file('../../../LICENSE.txt')) {
         rename { "${it}_${archivesBaseName}" }
 
     }

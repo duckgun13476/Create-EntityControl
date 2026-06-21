@@ -23,7 +23,7 @@ ext.cecReadPublishingProperties = {
 }
 
 ext.cecReadPrimaryChangelog = {
-    def changelogFile = project.file('update/changelog.md')
+    def changelogFile = new File(cecRepositoryRootDir, 'update/changelog.md')
     if (!changelogFile.exists()) {
         return ''
     }
@@ -33,7 +33,7 @@ ext.cecReadPrimaryChangelog = {
 }
 
 ext.cecReadFullChangelog = {
-    def changelogFile = project.file('update/changelog.md')
+    def changelogFile = new File(cecRepositoryRootDir, 'update/changelog.md')
     return changelogFile.exists() ? changelogFile.getText('UTF-8') : ''
 }
 
